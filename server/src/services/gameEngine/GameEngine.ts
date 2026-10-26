@@ -1,7 +1,9 @@
 import { Deck } from './Deck';
 import { HandEvaluator } from './HandEvaluator';
-import { GameState, Player, Card, BettingAction, GameConfig } from '../../../../shared/types/game.types';
-import { GAME_CONFIG, BLIND_SCHEDULE } from '../../../../shared/constants/gameConfig';
+import { LevelClock } from './LevelClock';
+import { settleShowdown } from './showdown';
+import { GameState, Player, BettingAction, GameConfig } from '../../../../shared/types/game.types';
+import { GAME_CONFIG } from '../../../../shared/constants/gameConfig';
 
 export class GameEngine {
   private gameState: GameState;
@@ -24,8 +26,7 @@ export class GameEngine {
   private readonly startingSmallBlind: number;
   private readonly startingBigBlind: number;
   private readonly startingChips: number;
-  private readonly levelMs: number;
-  private levelStartedAt: number | null = null;
+  private readonly levelClock: LevelClock;
   // Overridable clock so level timing can be tested
   now: () => number = () => Date.now();
 
@@ -35,7 +36,7 @@ export class GameEngine {
     this.startingSmallBlind = config.smallBlind;
     this.startingBigBlind = config.bigBlind;
     this.startingChips = config.startingChips;
-    this.levelMs = (config.levelMinutes ?? GAME_CONFIG.DEFAULT_LEVEL_MINUTES) * 60 * 1000;
+    this.levelClock = new LevelClock(config.levelMinutes, () => this.now());
     
     this.gameState = {
       roomId,
@@ -69,14 +70,12 @@ export class GameEngine {
 
   startHand(): void {
     this.handsPlayed++;
-    if (this.levelStartedAt === null) {
-      this.levelStartedAt = this.now();
-    }
+    this.levelClock.start();
     const blindLevel = this.getCurrentLevel();
     this.gameState.blindLevel = blindLevel;
     this.gameState.handNumber = this.handsPlayed;
-    this.gameState.smallBlind = this.blindsForLevel(this.startingSmallBlind, blindLevel);
-    this.gameState.bigBlind = this.blindsForLevel(this.startingBigBlind, blindLevel);
+    this.gameState.smallBlind = LevelClock.blindsForLevel(this.startingSmallBlind, blindLevel);
+    this.gameState.bigBlind = LevelClock.blindsForLevel(this.startingBigBlind, blindLevel);
 
     // Reset for new hand
     this.deck.shuffle();
@@ -432,70 +431,12 @@ export class GameEngine {
       return;
     }
     
-    // Evaluate hands and determine winner(s)
-    const hands = activePlayers.map(player => ({
-      player,
-      hand: this.handEvaluator.evaluateHand(
-        [...player.cards, ...this.gameState.communityCards]
-      )
-    }));
-
-    const contributionLevels = Array.from(new Set(this.gameState.players
-      .map(player => this.handContributions.get(player.id) || 0)
-      .filter(amount => amount > 0)))
-      .sort((a, b) => a - b);
-    const pots: Array<{ amount: number; eligiblePlayers: Player[] }> = [];
-    let previousLevel = 0;
-
-    for (const level of contributionLevels) {
-      const contributors = this.gameState.players.filter(
-        player => (this.handContributions.get(player.id) || 0) >= level
-      );
-      const eligiblePlayers = contributors.filter(player => !player.isFolded);
-      const amount = (level - previousLevel) * contributors.length;
-      const lastPot = pots[pots.length - 1];
-
-      if (eligiblePlayers.length > 0) {
-        pots.push({ amount, eligiblePlayers });
-      } else if (lastPot) {
-        lastPot.amount += amount;
-      } else {
-        pots.push({ amount, eligiblePlayers: activePlayers });
-      }
-      previousLevel = level;
-    }
-
-    const handByPlayerId = new Map(hands.map(entry => [entry.player.id, entry.hand]));
-    const winnings = new Map<string, number>();
-
-    for (const pot of pots) {
-      const eligibleHands = hands.filter(({ player }) => pot.eligiblePlayers.includes(player));
-      const bestHand = eligibleHands.reduce((best, entry) =>
-        this.handEvaluator.compareHands(entry.hand, best) > 0 ? entry.hand : best,
-      eligibleHands[0].hand);
-      const winners = eligibleHands.filter(({ hand }) =>
-        this.handEvaluator.compareHands(hand, bestHand) === 0
-      );
-      const share = Math.floor(pot.amount / winners.length);
-      const remainder = pot.amount % winners.length;
-
-      winners.forEach(({ player }, index) => {
-        const amount = share + (index < remainder ? 1 : 0);
-        player.chips += amount;
-        winnings.set(player.id, (winnings.get(player.id) || 0) + amount);
-      });
-    }
-
-    this.gameState.winners = Array.from(winnings, ([playerId, amount]) => {
-      const player = this.gameState.players.find(candidate => candidate.id === playerId)!;
-      const hand = handByPlayerId.get(playerId);
-      return {
-        playerId,
-        playerName: player.name,
-        amount,
-        handDescription: hand?.descr || 'Hand'
-      };
-    });
+    this.gameState.winners = settleShowdown(
+      this.gameState.players,
+      this.gameState.communityCards,
+      this.handContributions,
+      this.handEvaluator
+    );
   }
 
   private recordContribution(playerId: string, amount: number): void {
@@ -548,7 +489,7 @@ export class GameEngine {
     const current = this.gameState.players[this.gameState.currentPlayerIndex];
     return {
       ...this.gameState,
-      ...this.getClock(),
+      ...this.levelClock.snapshot(),
       minRaiseTo: this.gameState.currentBet + this.lastRaiseSize,
       canRaise: !!current && !this.raiseLocked.has(current.id),
       turnEndsAt: this.turnDeadline
@@ -589,29 +530,12 @@ export class GameEngine {
     }
   }
 
-  private blindsForLevel(base: number, level: number): number {
-    const last = BLIND_SCHEDULE.length;
-    const multiplier = BLIND_SCHEDULE[Math.min(level, last) - 1] * 2 ** Math.max(0, level - last);
-    return Math.round(base * multiplier);
-  }
-
   getCurrentLevel(): number {
-    if (this.levelStartedAt === null) return 1;
-    return Math.floor((this.now() - this.levelStartedAt) / this.levelMs) + 1;
+    return this.levelClock.currentLevel();
   }
 
   isRebuyOpen(): boolean {
-    return this.getCurrentLevel() <= GAME_CONFIG.REBUY_LEVELS;
-  }
-
-  private getClock(): { levelEndsAt: number; serverTime: number; rebuyOpen: boolean } {
-    const now = this.now();
-    const startedAt = this.levelStartedAt ?? now;
-    return {
-      levelEndsAt: startedAt + this.getCurrentLevel() * this.levelMs,
-      serverTime: now,
-      rebuyOpen: this.isRebuyOpen()
-    };
+    return this.levelClock.isRebuyOpen();
   }
 
   getBustedPlayers(): Player[] {

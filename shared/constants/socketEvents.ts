@@ -5,6 +5,7 @@
 export const SOCKET_EVENTS = {
   // Connection Events
   CONNECTION: 'connection',
+  CONNECT: 'connect',
   DISCONNECT: 'disconnect',
   CONNECT_ERROR: 'connect_error',
   
@@ -18,6 +19,9 @@ export const SOCKET_EVENTS = {
   ROOM_JOINED: 'room_joined',
   PLAYER_JOINED: 'player_joined',
   PLAYER_LEFT: 'player_left',
+  PLAYER_DISCONNECTED: 'player_disconnected',
+  PLAYER_READY: 'player_ready',
+  ALL_PLAYERS_READY: 'all_players_ready',
   ROOM_UPDATE: 'room_update',
   
   // Game Lifecycle Events
@@ -27,6 +31,7 @@ export const SOCKET_EVENTS = {
   SIT_IN: 'sit_in',
   GAME_STARTED: 'game_started',
   GAME_UPDATE: 'game_update',
+  GAME_STATE: 'game_state',
   HAND_COMPLETE: 'hand_complete',
   NEXT_HAND: 'next_hand',
   GAME_ENDED: 'game_ended',

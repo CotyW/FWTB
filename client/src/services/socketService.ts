@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import type { ClientGameState, PublicPlayer } from '../../../shared/types/game.types';
+import { SOCKET_EVENTS } from '../../../shared/constants/socketEvents';
 
 export type GameState = ClientGameState;
 
@@ -45,18 +46,18 @@ class SocketService {
           reconnectionAttempts: 5,
         });
 
-        this.socket.on('connect', () => {
+        this.socket.on(SOCKET_EVENTS.CONNECT, () => {
           this.isConnected = true;
           console.log('Connected to server');
           resolve();
         });
 
-        this.socket.on('connect_error', (error) => {
+        this.socket.on(SOCKET_EVENTS.CONNECT_ERROR, (error) => {
           console.error('Connection error:', error);
           reject(error);
         });
 
-        this.socket.on('disconnect', () => {
+        this.socket.on(SOCKET_EVENTS.DISCONNECT, () => {
           this.isConnected = false;
           console.log('Disconnected from server');
         });
@@ -78,28 +79,28 @@ class SocketService {
       console.error('Socket not connected');
       return;
     }
-    this.socket.emit('create_room', { playerName, buyIn, levelMinutes });
+    this.socket.emit(SOCKET_EVENTS.CREATE_ROOM, { playerName, buyIn, levelMinutes });
   }
 
   updateSettings(settings: { levelMinutes?: number; startingChips?: number }): void {
-    this.socket?.emit('update_settings', settings);
+    this.socket?.emit(SOCKET_EVENTS.UPDATE_SETTINGS, settings);
   }
 
   spectateRoom(roomCode: string): void {
-    this.socket?.emit('spectate_room', { roomCode });
+    this.socket?.emit(SOCKET_EVENTS.SPECTATE_ROOM, { roomCode });
   }
 
   onSpectateJoined(callback: (data: { roomId: string; roomCode: string; gameState: GameState }) => void): void {
     if (!this.socket) return;
-    this.socket.on('spectate_joined', callback);
+    this.socket.on(SOCKET_EVENTS.SPECTATE_JOINED, callback);
   }
 
   rebuy(): void {
-    this.socket?.emit('rebuy', {});
+    this.socket?.emit(SOCKET_EVENTS.REBUY, {});
   }
 
   sitIn(): void {
-    this.socket?.emit('sit_in', {});
+    this.socket?.emit(SOCKET_EVENTS.SIT_IN, {});
   }
 
   joinRoom(roomCode: string, playerName: string): void {
@@ -107,7 +108,7 @@ class SocketService {
       console.error('Socket not connected');
       return;
     }
-    this.socket.emit('join_room', { roomCode, playerName });
+    this.socket.emit(SOCKET_EVENTS.JOIN_ROOM, { roomCode, playerName });
   }
 
   setPlayerReady(ready: boolean): void {
@@ -115,7 +116,7 @@ class SocketService {
       console.error('Socket not connected');
       return;
     }
-    this.socket.emit('player_ready', { ready });
+    this.socket.emit(SOCKET_EVENTS.PLAYER_READY, { ready });
   }
 
   startGame(): void {
@@ -123,7 +124,7 @@ class SocketService {
       console.error('Socket not connected');
       return;
     }
-    this.socket.emit('start_game', {});
+    this.socket.emit(SOCKET_EVENTS.START_GAME, {});
   }
 
   playerAction(action: 'fold' | 'check' | 'call' | 'raise' | 'all_in', amount?: number): void {
@@ -133,7 +134,7 @@ class SocketService {
     }
     // Convert all_in to all-in for backend compatibility
     const serverAction = action === 'all_in' ? 'all-in' : action;
-    this.socket.emit('player_action', { action: serverAction, amount: amount || 0 });
+    this.socket.emit(SOCKET_EVENTS.PLAYER_ACTION, { action: serverAction, amount: amount || 0 });
   }
 
   leaveRoom(): void {
@@ -141,91 +142,91 @@ class SocketService {
       console.error('Socket not connected');
       return;
     }
-    this.socket.emit('leave_room', {});
+    this.socket.emit(SOCKET_EVENTS.LEAVE_ROOM, {});
   }
 
   // Event listeners
   onRoomCreated(callback: (data: PlayerJoinedEvent) => void): void {
     if (!this.socket) return;
-    this.socket.on('room_created', callback);
+    this.socket.on(SOCKET_EVENTS.ROOM_CREATED, callback);
   }
 
   onRoomJoined(callback: (data: PlayerJoinedEvent) => void): void {
     if (!this.socket) return;
-    this.socket.on('room_joined', callback);
+    this.socket.on(SOCKET_EVENTS.ROOM_JOINED, callback);
   }
 
   onPlayerJoined(callback: (data: PlayerJoinedEvent) => void): void {
     if (!this.socket) return;
-    this.socket.on('player_joined', callback);
+    this.socket.on(SOCKET_EVENTS.PLAYER_JOINED, callback);
   }
 
   onGameStarted(callback: (data: GameStartedEvent) => void): void {
     if (!this.socket) return;
-    this.socket.on('game_started', callback);
+    this.socket.on(SOCKET_EVENTS.GAME_STARTED, callback);
   }
 
   // Server uses 'game_update' for ongoing state; mirror it to game_state handler
   onGameUpdate(callback: (data: { gameState: GameState }) => void): void {
     if (!this.socket) return;
-    this.socket.on('game_update', callback);
+    this.socket.on(SOCKET_EVENTS.GAME_UPDATE, callback);
   }
 
   onNextHand(callback: (data: { gameState: GameState }) => void): void {
     if (!this.socket) return;
-    this.socket.on('next_hand', callback);
+    this.socket.on(SOCKET_EVENTS.NEXT_HAND, callback);
   }
 
   onRoomUpdate(callback: (data: any) => void): void {
     if (!this.socket) return;
-    this.socket.on('room_update', callback);
+    this.socket.on(SOCKET_EVENTS.ROOM_UPDATE, callback);
   }
 
   onGameState(callback: (state: GameState) => void): void {
     if (!this.socket) return;
-    this.socket.on('game_state', callback);
+    this.socket.on(SOCKET_EVENTS.GAME_STATE, callback);
   }
 
   onError(callback: (error: any) => void): void {
     if (!this.socket) return;
-    this.socket.on('room_error', callback);
-    this.socket.on('game_error', callback);
+    this.socket.on(SOCKET_EVENTS.ROOM_ERROR, callback);
+    this.socket.on(SOCKET_EVENTS.GAME_ERROR, callback);
   }
 
   onGameEnded(callback: (data: GameEndedEvent) => void): void {
     if (!this.socket) return;
-    this.socket.on('game_ended', callback);
+    this.socket.on(SOCKET_EVENTS.GAME_ENDED, callback);
   }
 
   onPlayerDisconnected(callback: (data: any) => void): void {
     if (!this.socket) return;
-    this.socket.on('player_disconnected', callback);
+    this.socket.on(SOCKET_EVENTS.PLAYER_DISCONNECTED, callback);
   }
 
   // Remove event listeners
   offRoomCreated(): void {
     if (!this.socket) return;
-    this.socket.off('room_created');
+    this.socket.off(SOCKET_EVENTS.ROOM_CREATED);
   }
 
   offPlayerJoined(): void {
     if (!this.socket) return;
-    this.socket.off('player_joined');
+    this.socket.off(SOCKET_EVENTS.PLAYER_JOINED);
   }
 
   offGameStarted(): void {
     if (!this.socket) return;
-    this.socket.off('game_started');
+    this.socket.off(SOCKET_EVENTS.GAME_STARTED);
   }
 
   offGameState(): void {
     if (!this.socket) return;
-    this.socket.off('game_state');
+    this.socket.off(SOCKET_EVENTS.GAME_STATE);
   }
 
   offError(): void {
     if (!this.socket) return;
-    this.socket.off('error');
+    this.socket.off(SOCKET_EVENTS.ERROR);
   }
 
   getIsConnected(): boolean {

@@ -30,7 +30,9 @@ const io = new Server(httpServer, {
         'http://127.0.0.1:3000',
         'http://127.0.0.1:3001',
         'http://127.0.0.1:5173',
-        ...(process.env.CLIENT_URL || '').split(',').map(s => s.trim().replace(/\/$/, '')).filter(Boolean)
+        ...(process.env.CLIENT_URL || '').split(',').map(s => s.trim().replace(/\/$/, '')).filter(Boolean),
+        // Render sets this to the service's public URL
+        ...(process.env.RENDER_EXTERNAL_URL ? [process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '')] : [])
       ];
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);

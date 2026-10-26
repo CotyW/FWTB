@@ -127,8 +127,7 @@ poker-app/
 ├── client/          # React frontend
 │   ├── src/
 │   │   ├── components/   # UI components
-│   │   ├── hooks/        # Custom React hooks
-│   │   ├── types/        # TypeScript types
+│   │   ├── services/     # Socket.io client
 │   │   └── App.tsx       # Main app component
 │   └── package.json
 │
@@ -136,8 +135,7 @@ poker-app/
 │   ├── src/
 │   │   ├── services/     # Game engine & business logic
 │   │   ├── models/       # Data models
-│   │   ├── routes/       # API routes
-│   │   └── server.ts     # Server entry point
+│   │   └── app.ts        # Server entry point
 │   └── package.json
 │
 └── shared/          # Shared types between client/server

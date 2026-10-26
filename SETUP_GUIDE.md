@@ -21,12 +21,11 @@
 - ✅ `PotDisplay.tsx` + CSS - Pot amount with chips animation
 - ✅ `Card.tsx` + CSS - Playing card component
 
-**Hooks & Types:**
-- ✅ `useSocket.ts` - Socket.io connection management
-- ✅ `game.types.ts` - All TypeScript types
+**Types:**
+- ✅ `shared/types/game.types.ts` - All TypeScript types (single source)
 
 ### Server Components (Backend)
-- ✅ `server.ts` - Server entry point with Socket.io
+- ✅ `app.ts` - Server entry point with Socket.io
 - ✅ `package.json` - Dependencies
 - ✅ `tsconfig.json` - TypeScript config
 
@@ -34,16 +33,10 @@
 - ✅ `GameEngine.ts` - Core game orchestration
 - ✅ `Deck.ts` - Card shuffling and dealing
 - ✅ `HandEvaluator.ts` - Hand ranking (uses pokersolver)
-- ✅ `PotManager.ts` - Main pot and side pots
 
 **Services:**
 - ✅ `SocketManager.ts` - WebSocket event handlers
 - ✅ `RoomManager.ts` - Room creation and player management
-
-**Routes & Middleware:**
-- ✅ `gameRoutes.ts` - HTTP endpoints (optional)
-- ✅ `roomRoutes.ts` - Room endpoints (optional)
-- ✅ `errorHandler.ts` - Error handling middleware
 
 ### Configuration Files
 - ✅ `.env.example` - Environment variable templates

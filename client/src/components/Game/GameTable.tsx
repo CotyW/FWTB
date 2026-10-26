@@ -11,6 +11,7 @@ interface GameTableProps {
   currentPlayerId: string;
   onAction: (action: string, amount?: number) => void;
   onRebuy: () => void;
+  onSitIn: () => void;
   isSpectator?: boolean;
   onLeaveGame: () => void;
 }
@@ -20,7 +21,7 @@ const formatTime = (ms: number) => {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 };
 
-const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAction, onRebuy, isSpectator = false, onLeaveGame }) => {
+const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAction, onRebuy, onSitIn, isSpectator = false, onLeaveGame }) => {
   // Use server-relative time so client clock skew doesn't matter
   const [remainingMs, setRemainingMs] = useState(gameState.levelEndsAt - gameState.serverTime);
   useEffect(() => {
@@ -107,11 +108,16 @@ const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAct
             <div className="winners-section">
               <p className="reset-message">👀 You are watching as a spectator. Hole cards are hidden.</p>
             </div>
-          ) : !myPlayer && (
+          ) : !myPlayer ? (
             <div className="winners-section">
               <p className="reset-message">
                 You have been eliminated. You'll keep watching until the tournament ends — hole cards stay hidden.
               </p>
+            </div>
+          ) : myPlayer.isSittingOut && (
+            <div className="winners-section">
+              <p className="reset-message">You missed two turns in a row and are sitting out. Your hands are auto-folded.</p>
+              <button className="btn btn-primary" onClick={onSitIn}>I'm Back</button>
             </div>
           )}
 
@@ -153,6 +159,7 @@ const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAct
             amountToCall={Math.max(0, gameState.currentBet - (myPlayer?.currentBet || 0))}
             tableBet={gameState.currentBet}
             minRaiseTo={gameState.minRaiseTo}
+            canRaise={gameState.canRaise}
             bigBlind={gameState.bigBlind}
             pot={gameState.pot}
             onAction={onAction}

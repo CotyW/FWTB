@@ -121,12 +121,6 @@ export class RoomManager {
       room.removePlayer(player.id);
       this.playerRooms.delete(socketId);
       logger.info(`Player ${player.name} removed from room: ${room.code}`);
-
-      // If host leaves, assign new host
-      if (socketId === room.hostId && room.players.length > 0) {
-        room.hostId = room.players[0].socketId;
-        logger.info(`New host assigned in room ${room.code}: ${room.players[0].name}`);
-      }
     }
     
     // Delete room if empty

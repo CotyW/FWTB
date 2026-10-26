@@ -98,6 +98,10 @@ class SocketService {
     this.socket?.emit('rebuy', {});
   }
 
+  sitIn(): void {
+    this.socket?.emit('sit_in', {});
+  }
+
   joinRoom(roomCode: string, playerName: string): void {
     if (!this.socket) {
       console.error('Socket not connected');

@@ -15,6 +15,8 @@ export interface Player {
   isAllIn: boolean;
   currentBet: number;
   isReady?: boolean;
+  isSittingOut?: boolean;
+  isDisconnected?: boolean;
 }
 
 export interface GameState {
@@ -34,6 +36,7 @@ export interface GameState {
   serverTime: number;
   rebuyOpen: boolean;
   minRaiseTo: number;
+  canRaise: boolean;
   turnEndsAt: number;
   winners?: WinnerInfo[];
 }

@@ -13,6 +13,8 @@ export class GameEngine {
   private lastAggressorId: string | null = null;
   // Size of the last full raise this round; the next raise must be at least this big
   private lastRaiseSize = 0;
+  // Players who may not raise because a short all-in did not re-open the betting to them
+  private raiseLocked: Set<string> = new Set();
   private turnDeadline = 0;
 
   setTurnDeadline(deadline: number): void {
@@ -60,6 +62,7 @@ export class GameEngine {
       serverTime: 0,
       rebuyOpen: true,
       minRaiseTo: 0,
+      canRaise: true,
       turnEndsAt: 0
     };
   }
@@ -115,6 +118,7 @@ export class GameEngine {
     });
     this.lastAggressorId = null;
     this.lastRaiseSize = this.gameState.bigBlind;
+    this.raiseLocked.clear();
     this.autoAdvanceWhenNoActionsNeeded();
   }
 
@@ -204,6 +208,9 @@ export class GameEngine {
       
       case 'raise':
         const raiseAmount = action.amount!;
+        if (this.raiseLocked.has(playerId)) {
+          throw new Error('Betting was not re-opened by the short all-in; you can only call or fold');
+        }
         // Validate raise: must be more than current bet amount
         if (raiseAmount <= this.gameState.currentBet) {
           throw new Error('Raise must be more than current bet');
@@ -217,7 +224,7 @@ export class GameEngine {
         if (raiseAmount < minRaiseTo && !isAllInRaise) {
           throw new Error(`Minimum raise is to ${minRaiseTo}`);
         }
-        this.lastRaiseSize = Math.max(this.lastRaiseSize, raiseAmount - this.gameState.currentBet);
+        const previousBet = this.gameState.currentBet;
         const betToAdd = raiseAmount - player.currentBet;
         player.chips -= betToAdd;
         player.currentBet = raiseAmount;
@@ -225,35 +232,24 @@ export class GameEngine {
         this.recordContribution(playerId, betToAdd);
         this.gameState.currentBet = raiseAmount;
         if (player.chips === 0) player.isAllIn = true;
-        // Set new aggressor and require others to respond
-        this.lastAggressorId = playerId;
-        this.pendingCallers.clear();
-        this.gameState.players.forEach(p => {
-          if (!p.isFolded && !p.isAllIn && p.id !== playerId) {
-            this.pendingCallers.add(p.id);
-          }
-        });
+        this.registerAggression(playerId, previousBet);
         break;
 
       case 'all-in':
+        if (this.raiseLocked.has(playerId) && player.currentBet + player.chips > this.gameState.currentBet) {
+          throw new Error('Betting was not re-opened by the short all-in; you can only call or fold');
+        }
         const allInAmount = player.chips;
+        const betBeforeAllIn = this.gameState.currentBet;
         player.chips = 0;
         player.currentBet += allInAmount;
         player.isAllIn = true;
         this.gameState.pot += allInAmount;
         this.recordContribution(playerId, allInAmount);
         // If all-in amount is higher than current bet, it becomes new current bet
-        if (player.currentBet > this.gameState.currentBet) {
-          this.lastRaiseSize = Math.max(this.lastRaiseSize, player.currentBet - this.gameState.currentBet);
+        if (player.currentBet > betBeforeAllIn) {
           this.gameState.currentBet = player.currentBet;
-          // Treat as aggression and set pending callers
-          this.lastAggressorId = playerId;
-          this.pendingCallers.clear();
-          this.gameState.players.forEach(p => {
-            if (!p.isFolded && !p.isAllIn && p.id !== playerId) {
-              this.pendingCallers.add(p.id);
-            }
-          });
+          this.registerAggression(playerId, betBeforeAllIn);
         } else {
           // If all-in did not increase the bet, they have responded
           this.pendingCallers.delete(playerId);
@@ -282,6 +278,33 @@ export class GameEngine {
     }
 
     return this.getGameState();
+  }
+
+  /**
+   * Called after a bet or raise has been applied (currentBet already updated).
+   * A full raise re-opens the betting for everyone; a short all-in does not
+   * re-open it for players who already responded to the previous bet.
+   */
+  private registerAggression(playerId: string, previousBet: number): void {
+    const increase = this.gameState.currentBet - previousBet;
+    if (increase >= this.lastRaiseSize) {
+      this.lastRaiseSize = increase;
+      this.raiseLocked.clear();
+    } else if (previousBet > 0) {
+      this.actedThisRound.forEach(id => {
+        if (id !== playerId && !this.pendingCallers.has(id)) {
+          this.raiseLocked.add(id);
+        }
+      });
+    }
+
+    this.lastAggressorId = playerId;
+    this.pendingCallers.clear();
+    this.gameState.players.forEach(p => {
+      if (!p.isFolded && !p.isAllIn && p.id !== playerId) {
+        this.pendingCallers.add(p.id);
+      }
+    });
   }
 
   private advanceToNextPlayer(): void {
@@ -338,6 +361,7 @@ export class GameEngine {
     this.pendingCallers.clear();
     this.lastAggressorId = null;
     this.lastRaiseSize = this.gameState.bigBlind;
+    this.raiseLocked.clear();
     
     switch (this.gameState.stage) {
       case 'preflop':
@@ -487,7 +511,7 @@ export class GameEngine {
   nextHand(): void {
     const previousPlayers = this.gameState.players;
     const previousDealer = previousPlayers[this.gameState.dealerPosition];
-    const playersWithChips = previousPlayers.filter(player => player.chips > 0);
+    const playersWithChips = previousPlayers.filter(player => player.chips > 0 && !player.isDisconnected);
     this.gameState.players = playersWithChips;
     
     if (this.gameState.players.length < 2) {
@@ -498,7 +522,7 @@ export class GameEngine {
     let nextDealerId: string | undefined;
     for (let offset = 1; offset <= previousPlayers.length; offset++) {
       const candidate = previousPlayers[(previousDealerIndex + offset) % previousPlayers.length];
-      if (candidate.chips > 0) {
+      if (candidate.chips > 0 && !candidate.isDisconnected) {
         nextDealerId = candidate.id;
         break;
       }
@@ -521,7 +545,48 @@ export class GameEngine {
   }
 
   getGameState(): GameState {
-    return { ...this.gameState, ...this.getClock(), minRaiseTo: this.gameState.currentBet + this.lastRaiseSize, turnEndsAt: this.turnDeadline };
+    const current = this.gameState.players[this.gameState.currentPlayerIndex];
+    return {
+      ...this.gameState,
+      ...this.getClock(),
+      minRaiseTo: this.gameState.currentBet + this.lastRaiseSize,
+      canRaise: !!current && !this.raiseLocked.has(current.id),
+      turnEndsAt: this.turnDeadline
+    };
+  }
+
+  setSittingOut(playerId: string, sittingOut: boolean): void {
+    const player = this.gameState.players.find(p => p.id === playerId);
+    if (player) player.isSittingOut = sittingOut;
+  }
+
+  /**
+   * A player left mid-game. Their hand is folded (unless already all in) and they are
+   * dropped from the table before the next hand; their chips leave with them.
+   */
+  forfeitPlayer(playerId: string): void {
+    const player = this.gameState.players.find(p => p.id === playerId);
+    if (!player) return;
+    player.isDisconnected = true;
+
+    const handInProgress = ['preflop', 'flop', 'turn', 'river'].includes(this.gameState.stage);
+    if (!handInProgress || player.isFolded || player.isAllIn) return;
+
+    const current = this.gameState.players[this.gameState.currentPlayerIndex];
+    if (current?.id === playerId) {
+      this.handlePlayerAction(playerId, { type: 'fold' });
+      return;
+    }
+
+    player.isFolded = true;
+    this.pendingCallers.delete(playerId);
+    if (this.gameState.players.filter(p => !p.isFolded).length === 1) {
+      this.gameState.stage = 'showdown';
+      this.resolveShowdown();
+    } else if (this.isBettingRoundComplete()) {
+      this.advanceStage();
+      this.autoAdvanceWhenNoActionsNeeded();
+    }
   }
 
   private blindsForLevel(base: number, level: number): number {
@@ -550,7 +615,7 @@ export class GameEngine {
   }
 
   getBustedPlayers(): Player[] {
-    return this.gameState.players.filter(player => player.chips === 0);
+    return this.gameState.players.filter(player => player.chips === 0 && !player.isDisconnected);
   }
 
   rebuy(playerId: string): GameState {
@@ -568,7 +633,7 @@ export class GameEngine {
   }
 
   getTournamentWinner(): Player | undefined {
-    const remainingPlayers = this.gameState.players.filter(player => player.chips > 0);
+    const remainingPlayers = this.gameState.players.filter(player => player.chips > 0 && !player.isDisconnected);
     return remainingPlayers.length === 1 ? remainingPlayers[0] : undefined;
   }
 }

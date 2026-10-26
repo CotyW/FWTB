@@ -15,6 +15,7 @@ export class SocketManager {
   private actionLocks: Map<string, boolean>; // roomId -> lock flag
   private turnTimers: Map<string, NodeJS.Timeout> = new Map();
   private spectators: Map<string, string> = new Map(); // socketId -> roomId
+  private timeoutStreaks: Map<string, number> = new Map(); // playerId -> consecutive turn timeouts
   private cleanupInterval: NodeJS.Timeout | null = null;
   private suitSymbols: Record<string, string> = {
     hearts: '♥',
@@ -63,6 +64,7 @@ export class SocketManager {
       this.handleStartGame(socket);
       this.handleUpdateSettings(socket);
       this.handleRebuy(socket);
+      this.handleSitIn(socket);
       this.handlePlayerAction(socket);
       this.handlePlayerReady(socket);
       this.handleDisconnect(socket);
@@ -340,15 +342,9 @@ export class SocketManager {
         };
 
         gameEngine.handlePlayerAction(player.id, bettingAction);
-        this.armTurnTimer(room, gameEngine);
-        const gameState = gameEngine.getGameState();
-        
-        this.broadcastGameState(room, SOCKET_EVENTS.GAME_UPDATE, gameState);
-
-        // Check if hand is complete
-        if (gameState.stage === 'showdown' && gameState.winners) {
-          this.scheduleNextHand(room, gameEngine);
-        }
+        this.timeoutStreaks.delete(player.id);
+        gameEngine.setSittingOut(player.id, false);
+        this.publishState(room, gameEngine);
 
       } catch (error) {
         socket.emit(SOCKET_EVENTS.GAME_ERROR, { 
@@ -417,6 +413,28 @@ export class SocketManager {
     });
   }
 
+  // Re-arm the turn clock, broadcast the new state, and queue the next hand if this one just ended
+  private publishState(room: Room, gameEngine: GameEngine): void {
+    this.armTurnTimer(room, gameEngine);
+    const gameState = gameEngine.getGameState();
+    this.broadcastGameState(room, SOCKET_EVENTS.GAME_UPDATE, gameState);
+    if (gameState.stage === 'showdown' && gameState.winners) {
+      this.scheduleNextHand(room, gameEngine);
+    }
+  }
+
+  private handleSitIn(socket: Socket): void {
+    socket.on(SOCKET_EVENTS.SIT_IN, () => {
+      const room = this.roomManager.findRoomBySocketId(socket.id);
+      const player = room?.getPlayerBySocketId(socket.id);
+      const gameEngine = room && this.activeGames.get(room.id);
+      if (!room || !player || !gameEngine) return;
+      this.timeoutStreaks.delete(player.id);
+      gameEngine.setSittingOut(player.id, false);
+      this.broadcastGameState(room, SOCKET_EVENTS.GAME_UPDATE, gameEngine.getGameState());
+    });
+  }
+
   private clearTurnTimer(roomId: string): void {
     const timer = this.turnTimers.get(roomId);
     if (timer) clearTimeout(timer);
@@ -426,13 +444,17 @@ export class SocketManager {
   // Starts a fresh countdown for whoever is to act; the deadline is sent to clients in the game state
   private armTurnTimer(room: NonNullable<ReturnType<RoomManager['getRoom']>>, gameEngine: GameEngine): void {
     this.clearTurnTimer(room.id);
-    const stage = gameEngine.getGameState().stage;
+    const state = gameEngine.getGameState();
+    const stage = state.stage;
     if (this.activeGames.get(room.id) !== gameEngine || stage === 'showdown' || stage === 'waiting') {
       gameEngine.setTurnDeadline(0);
       return;
     }
-    gameEngine.setTurnDeadline(Date.now() + GAME_CONFIG.TURN_TIME_MS);
-    const timer = setTimeout(() => this.handleTurnTimeout(room, gameEngine), GAME_CONFIG.TURN_TIME_MS);
+    // Sitting-out players don't get the full clock; they are auto-checked/folded quickly
+    const sittingOut = !!state.players[state.currentPlayerIndex]?.isSittingOut;
+    const delay = sittingOut ? GAME_CONFIG.SITTING_OUT_DELAY_MS : GAME_CONFIG.TURN_TIME_MS;
+    gameEngine.setTurnDeadline(Date.now() + delay);
+    const timer = setTimeout(() => this.handleTurnTimeout(room, gameEngine), delay);
     this.turnTimers.set(room.id, timer);
   }
 
@@ -448,12 +470,16 @@ export class SocketManager {
       gameEngine.handlePlayerAction(current.id, { type } as BettingAction);
       logger.info(`Auto-${type} for ${current.name} in room ${room.code} (turn timer)`);
 
-      this.armTurnTimer(room, gameEngine);
-      const gameState = gameEngine.getGameState();
-      this.broadcastGameState(room, SOCKET_EVENTS.GAME_UPDATE, gameState);
-      if (gameState.stage === 'showdown' && gameState.winners) {
-        this.scheduleNextHand(room, gameEngine);
+      if (!current.isSittingOut) {
+        const streak = (this.timeoutStreaks.get(current.id) || 0) + 1;
+        this.timeoutStreaks.set(current.id, streak);
+        if (streak >= GAME_CONFIG.AUTO_SIT_OUT_TIMEOUTS) {
+          gameEngine.setSittingOut(current.id, true);
+          logger.info(`${current.name} is now sitting out in room ${room.code}`);
+        }
       }
+
+      this.publishState(room, gameEngine);
     } catch (error) {
       logger.warn('Turn timeout action failed', error);
     }
@@ -530,19 +556,19 @@ export class SocketManager {
         remainingPlayers: room.players.length,
         reason
       });
+      this.io.to(room.id).emit(SOCKET_EVENTS.ROOM_UPDATE, { room: room.toJSON() });
 
-      // If game is playing and player was in it, handle cleanup
-      if (room.status === 'playing' && this.activeGames.has(room.id)) {
+      // If game is playing and player was in it, fold them out through the engine
+      if (room.status === 'playing' && this.activeGames.has(room.id) && player) {
         const gameEngine = this.activeGames.get(room.id)!;
-        const gameState = gameEngine.getGameState();
-        
-        // Mark player as folded
-        const gsPlayer = gameState.players.find(p => p.id === player?.id);
-        if (gsPlayer) {
-          gsPlayer.isFolded = true;
+        this.timeoutStreaks.delete(player.id);
+        const wasLive = !['showdown', 'waiting'].includes(gameEngine.getGameState().stage);
+        gameEngine.forfeitPlayer(player.id);
+        if (wasLive) {
+          this.publishState(room, gameEngine);
+        } else {
+          this.broadcastGameState(room, SOCKET_EVENTS.GAME_UPDATE, gameEngine.getGameState());
         }
-
-        this.broadcastGameState(room, SOCKET_EVENTS.GAME_UPDATE, gameState);
       }
     } else {
       // Room is now empty

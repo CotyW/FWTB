@@ -3,7 +3,7 @@ import './PlayerSeat.css';
 
 import type { PublicPlayer } from '../../../../shared/types/game.types';
 
-type Player = Pick<PublicPlayer, 'id' | 'name' | 'chips' | 'cards' | 'isFolded' | 'isAllIn' | 'isReady'>;
+type Player = Pick<PublicPlayer, 'id' | 'name' | 'chips' | 'cards' | 'isFolded' | 'isAllIn' | 'isReady' | 'isSittingOut'>;
 
 interface PlayerSeatProps {
   player: Player;
@@ -26,6 +26,7 @@ const PlayerSeat: React.FC<PlayerSeatProps> = ({ player, isCurrentPlayer }) => {
           </div>
         )}
         {player.isFolded && <div className="status-folded">FOLDED</div>}
+        {player.isSittingOut && <div className="status-folded">SITTING OUT</div>}
         {player.isAllIn && <div className="status-allin">ALL IN</div>}
         {isCurrentPlayer && <div className="status-current">YOUR TURN</div>}
       </div>

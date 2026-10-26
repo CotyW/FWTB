@@ -11,12 +11,13 @@ interface PlayerControlsProps {
   amountToCall: number;
   tableBet: number;
   minRaiseTo: number;
+  canRaise: boolean;
   bigBlind: number;
   pot: number;
   onAction: (action: string, amount?: number) => void;
 }
 
-const PlayerControls: React.FC<PlayerControlsProps> = ({ currentPlayer, isMyTurn, amountToCall, tableBet, minRaiseTo, bigBlind, pot, onAction }) => {
+const PlayerControls: React.FC<PlayerControlsProps> = ({ currentPlayer, isMyTurn, amountToCall, tableBet, minRaiseTo, canRaise: raiseAllowed, bigBlind, pot, onAction }) => {
   const [raiseInput, setRaiseInput] = useState(0);
 
   if (!currentPlayer) {
@@ -46,7 +47,9 @@ const PlayerControls: React.FC<PlayerControlsProps> = ({ currentPlayer, isMyTurn
   const maxRaise = currentPlayer.chips + currentPlayer.currentBet;
   const minRaise = Math.min(minRaiseTo, maxRaise);
   const raiseAmount = Math.min(maxRaise, Math.max(minRaise, raiseInput));
-  const canRaise = maxRaise > tableBet;
+  const canRaise = raiseAllowed && maxRaise > tableBet;
+  // After a short all-in that didn't re-open betting, shoving more than a call counts as a raise
+  const canAllIn = raiseAllowed || maxRaise <= tableBet;
   const presets = [
     { label: 'Min', value: minRaise },
     { label: '½ Pot', value: tableBet + Math.round(pot / 2) },
@@ -90,6 +93,8 @@ const PlayerControls: React.FC<PlayerControlsProps> = ({ currentPlayer, isMyTurn
         <button
           className="btn btn-allin"
           onClick={() => onAction('all_in')}
+          disabled={!canAllIn}
+          title={canAllIn ? undefined : 'Betting was not re-opened by a short all-in: call or fold'}
         >
           All In
         </button>

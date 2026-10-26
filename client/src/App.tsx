@@ -260,6 +260,7 @@ function App() {
             currentPlayerId={appState.playerId}
             onAction={handleGameAction}
             onRebuy={() => socketService.rebuy()}
+            onSitIn={() => socketService.sitIn()}
             isSpectator={appState.isSpectator}
             onLeaveGame={handleLeaveRoom}
           />

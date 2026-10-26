@@ -15,6 +15,8 @@ export const GAME_CONFIG = {
   TURN_TIME_MS: 30000, // time a player has to act before being auto-checked/folded
   MIN_STARTING_CHIPS: 100,
   MAX_STARTING_CHIPS: 1000000,
+  AUTO_SIT_OUT_TIMEOUTS: 2, // consecutive turn timeouts before a player is sat out
+  SITTING_OUT_DELAY_MS: 1500, // how long a sitting-out player's turn lasts before auto-acting
 } as const;
 
 // Clamp a requested starting stack to the allowed range

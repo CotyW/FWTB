@@ -1,0 +1,24 @@
+﻿≡ƒô¥ ≡ƒÄ« STARTING POKER GAME FLOW TEST
+
+≡ƒô¥ Setting up test players...
+node : 
+At line:1 char:67
++ ... e\Desktop\poker-app\server"; node test-full-game-flow.js 2>&1 | Out-F ...
++                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Γ¥î TEST CRASHED: xhr poll error
+Error: xhr poll error
+    at XHR.onError (C:\Users\cotyw\OneDrive\Desktop\poker-app\server\node_modul
+es\engine.io-client\build\cjs\transport.js:48:37)
+    at Request.<anonymous> (C:\Users\cotyw\OneDrive\Desktop\poker-app\server\no
+de_modules\engine.io-client\build\cjs\transports\polling-xhr.js:64:18)
+    at Emitter.emit (C:\Users\cotyw\OneDrive\Desktop\poker-app\server\node_modu
+les\@socket.io\component-emitter\lib\cjs\index.js:143:20)
+    at Request._onError (C:\Users\cotyw\OneDrive\Desktop\poker-app\server\node_
+modules\engine.io-client\build\cjs\transports\polling-xhr.js:173:14)
+    at Timeout._onTimeout (C:\Users\cotyw\OneDrive\Desktop\poker-app\server\nod
+e_modules\engine.io-client\build\cjs\transports\polling-xhr.js:146:30)
+    at listOnTimeout (node:internal/timers:594:17)
+    at process.processTimers (node:internal/timers:529:7)

@@ -1,0 +1,258 @@
+import React, { useState } from 'react';
+import './LobbyView.css';
+
+interface LandingProps {
+  onCreateRoom: (playerName: string, buyIn: number, levelMinutes: number) => void;
+  onJoinRoom: (playerName: string, roomCode: string) => void;
+  onSpectate: (roomCode: string) => void;
+}
+
+interface LobbyPlayer {
+  id: string;
+  name: string;
+}
+
+interface RoomLobbyProps {
+  roomCode: string;
+  players: LobbyPlayer[];
+  hostId: string;
+  currentPlayerId: string;
+  startingChips: number;
+  levelMinutes: number;
+  onUpdateLevelMinutes: (minutes: number) => void;
+  onStartGame: () => void;
+  onLeaveRoom: () => void;
+}
+
+export const Landing: React.FC<LandingProps> = ({ onCreateRoom, onJoinRoom, onSpectate }) => {
+  const [view, setView] = useState<'choice' | 'create' | 'join'>('choice');
+  const [playerName, setPlayerName] = useState('');
+  const [buyIn, setBuyIn] = useState(1000);
+  const [levelMinutes, setLevelMinutes] = useState(10);
+  const [roomCode, setRoomCode] = useState('');
+
+  const handleCreateRoom = () => {
+    if (!playerName.trim()) {
+      alert('Please enter your name');
+      return;
+    }
+    onCreateRoom(playerName.trim(), buyIn, levelMinutes);
+  };
+
+  const handleJoinRoom = () => {
+    if (!playerName.trim()) {
+      alert('Please enter your name');
+      return;
+    }
+    if (!roomCode.trim()) {
+      alert('Please enter a room code');
+      return;
+    }
+    onJoinRoom(playerName.trim(), roomCode.trim().toUpperCase());
+  };
+
+  return (
+    <div className="lobby-view">
+      {view === 'choice' && (
+        <div className="lobby-choice">
+          <p className="eyebrow">Texas Hold'em · Sit &amp; Go</p>
+          <h2>One table. One champion.</h2>
+          <p>Start a private tournament for 2–6 players. Everyone gets the same stack, blinds rise on a timer, and play continues until one player has all the chips.</p>
+          <button className="btn btn-primary" onClick={() => setView('create')}>
+            Create Room
+          </button>
+          <button className="btn btn-secondary" onClick={() => setView('join')}>
+            Join Room
+          </button>
+        </div>
+      )}
+
+      {view === 'create' && (
+        <div className="lobby-form">
+          <h2>Create Room</h2>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCreateRoom();
+            }}
+          >
+            <div className="form-group">
+              <label>Player Name</label>
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="Your name"
+                maxLength={20}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Starting Stack (chips)</label>
+              <input
+                type="number"
+                value={buyIn}
+                onChange={(e) => setBuyIn(Math.max(100, parseInt(e.target.value) || 100))}
+                min={100}
+                step={100}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Blind Level Length (minutes)</label>
+              <input
+                type="number"
+                value={levelMinutes}
+                onChange={(e) => setLevelMinutes(Math.min(60, Math.max(1, parseInt(e.target.value) || 1)))}
+                min={1}
+                max={60}
+              />
+            </div>
+
+            <div className="form-buttons">
+              <button type="submit" className="btn btn-primary">
+                Create Room
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => {
+                  setView('choice');
+                  setPlayerName('');
+                  setBuyIn(1000);
+                }}
+              >
+                Back
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {view === 'join' && (
+        <div className="lobby-form">
+          <h2>Join Room</h2>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleJoinRoom();
+            }}
+          >
+            <div className="form-group">
+              <label>Player Name</label>
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="Your name"
+                maxLength={20}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Room Code</label>
+              <input
+                type="text"
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                placeholder="e.g., ABC123"
+                maxLength={6}
+              />
+            </div>
+
+            <p className="form-hint">The host sets the equal starting stack for everyone.</p>
+
+            <div className="form-buttons">
+              <button type="submit" className="btn btn-primary">
+                Join Room
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  if (!roomCode.trim()) {
+                    alert('Please enter a room code');
+                    return;
+                  }
+                  onSpectate(roomCode.trim().toUpperCase());
+                }}
+              >
+                Watch Only
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => {
+                  setView('choice');
+                  setPlayerName('');
+                  setRoomCode('');
+                  setBuyIn(1000);
+                }}
+              >
+                Back
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const RoomLobby: React.FC<RoomLobbyProps> = ({ roomCode, players, hostId, currentPlayerId, startingChips, levelMinutes, onUpdateLevelMinutes, onStartGame, onLeaveRoom }) => {
+  const isHost = currentPlayerId === hostId;
+  return (
+    <div className="room-lobby">
+      <p className="eyebrow">Sit &amp; Go lobby</p>
+      <h2>Room: {roomCode}</h2>
+      <p>{players.length} / 6 players · {startingChips.toLocaleString()} starting chips</p>
+      <div className="tournament-summary">
+        <span>Texas Hold'em</span>
+        <span>Starting blinds: 10 / 20</span>
+        <span>Blinds rise every {levelMinutes} min</span>
+        <span>Rebuys through level 4</span>
+      </div>
+      {isHost && (
+        <div className="form-group">
+          <label>Blind Level Length (minutes)</label>
+          <input
+            type="number"
+            value={levelMinutes}
+            min={1}
+            max={60}
+            onChange={(e) => {
+              const m = parseInt(e.target.value);
+              if (m >= 1 && m <= 60) onUpdateLevelMinutes(m);
+            }}
+          />
+        </div>
+      )}
+      <div className="player-list">
+        {players && players.length > 0 ? (
+          players.map((p) => (
+            <div key={p.id} className="player-row">
+              <span>{p.name}</span>
+              {p.id === hostId && <span className="badge">Host</span>}
+              {p.id === currentPlayerId && <span className="badge">You</span>}
+            </div>
+          ))
+        ) : (
+          <p>Players will appear here</p>
+        )}
+      </div>
+      {currentPlayerId === hostId && players.length >= 2 && (
+        <button className="btn btn-primary" onClick={onStartGame}>
+          Start Sit &amp; Go
+        </button>
+      )}
+      {players.length < 2 && <p className="form-hint">At least 2 players are needed to start.</p>}
+      <button className="btn btn-outline" onClick={onLeaveRoom}>
+        Leave Room
+      </button>
+    </div>
+  );
+};
+
+const LobbyView = { Landing, RoomLobby };
+
+export default LobbyView;

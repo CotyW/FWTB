@@ -1,0 +1,48 @@
+.community-cards {
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.community-cards h3 {
+  margin: 0 0 1rem 0;
+  color: #c9a961;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cards-display {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.card-placeholder {
+  width: 80px;
+  height: 110px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 2px dashed rgba(201, 169, 97, 0.3);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-back {
+  width: 70px;
+  height: 100px;
+  background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 100%);
+  border: 1px solid #c9a961;
+  border-radius: 4px;
+  position: relative;
+}
+
+.card-back::before {
+  content: '♠';
+  position: absolute;
+  font-size: 2rem;
+  color: rgba(201, 169, 97, 0.2);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

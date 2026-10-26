@@ -1,0 +1,259 @@
+.lobby-view {
+  width: 100%;
+  max-width: 500px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lobby-choice,
+.lobby-form {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(201, 169, 97, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.lobby-choice h2,
+.lobby-form h2 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.8rem;
+  text-align: center;
+}
+
+.lobby-choice p {
+  text-align: center;
+  color: #ccc;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.eyebrow {
+  color: #c9a961 !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0 0 0.5rem !important;
+  text-transform: uppercase;
+}
+
+.form-hint {
+  color: #bbb;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.tournament-summary {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1.25rem 0;
+  padding: 1rem;
+  border: 1px solid rgba(201, 169, 97, 0.2);
+  border-radius: 8px;
+  color: #ddd;
+  font-size: 0.9rem;
+}
+
+.lobby-form h2 {
+  margin-bottom: 1.5rem;
+}
+
+.lobby-choice .btn {
+  width: 100%;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid rgba(201, 169, 97, 0.5);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #c9a961;
+  box-shadow: 0 0 0 3px rgba(201, 169, 97, 0.1);
+}
+
+.form-group input::placeholder {
+  color: #999;
+}
+
+.form-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-buttons .btn {
+  padding: 0.75rem;
+}
+
+.room-lobby {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(201, 169, 97, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  max-width: 600px;
+  width: 100%;
+}
+
+.room-lobby h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.8rem;
+  color: #c9a961;
+  letter-spacing: 2px;
+}
+
+.room-lobby p {
+  margin: 0 0 1.5rem 0;
+  color: #ccc;
+}
+
+.player-list {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.player-list p {
+  margin: 0;
+  color: #999;
+}
+
+.player-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0.8rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(201, 169, 97, 0.2);
+  border-radius: 6px;
+}
+
+.badge {
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(201, 169, 97, 0.6);
+  color: #c9a961;
+}
+
+.room-lobby .btn {
+  width: 100%;
+}
+
+/* Button Styles */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #c9a961 0%, #d4b87a 100%);
+  color: #1a472a;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(201, 169, 97, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #4b9d6e 0%, #5cb885 100%);
+  color: #fff;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(75, 157, 110, 0.3);
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid #c9a961;
+  color: #c9a961;
+}
+
+.btn-outline:hover {
+  background: rgba(201, 169, 97, 0.1);
+  box-shadow: 0 4px 12px rgba(201, 169, 97, 0.2);
+}
+
+.btn-outline:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 600px) {
+  .lobby-choice,
+  .lobby-form,
+  .room-lobby {
+    padding: 1.5rem;
+  }
+
+  .lobby-choice h2,
+  .lobby-form h2,
+  .room-lobby h2 {
+    font-size: 1.5rem;
+  }
+
+  .form-buttons {
+    grid-template-columns: 1fr;
+  }
+}

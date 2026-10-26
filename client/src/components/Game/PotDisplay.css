@@ -1,0 +1,23 @@
+.pot-display {
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid #c9a961;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  min-width: 150px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.pot-label {
+  font-size: 0.9rem;
+  color: #c9a961;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+
+.pot-amount {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #4ade80;
+}

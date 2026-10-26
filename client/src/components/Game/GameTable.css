@@ -1,0 +1,589 @@
+.game-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.game-table {
+  width: 100%;
+  max-width: 1500px;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  padding: 2rem 4rem;
+}
+
+.table-header {
+  text-align: center;
+  border-bottom: 2px solid #c9a961;
+  padding-bottom: 1rem;
+}
+
+.table-header h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.8rem;
+}
+
+.table-info {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.stage-badge {
+  background: rgba(201, 169, 97, 0.2);
+  border: 1px solid #c9a961;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #c9a961;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.current-bet {
+  color: #ffd700;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.turn-timer {
+  color: #fff;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid #c9a961;
+}
+
+.turn-timer.urgent {
+  background: rgba(231, 76, 60, 0.35);
+  border-color: #e74c3c;
+  animation: turn-pulse 1s infinite;
+}
+
+@keyframes turn-pulse {
+  50% { opacity: 0.6; }
+}
+
+.table-layout {
+  position: relative;
+  width: calc(100% - 200px);
+  margin: 90px 100px;
+  min-height: 460px;
+  aspect-ratio: 2.1;
+  background: linear-gradient(135deg, rgba(26, 71, 42, 0.3) 0%, rgba(45, 90, 61, 0.3) 100%);
+  border: 2px dashed #c9a961;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.center-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  z-index: 2;
+}
+
+.community-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pot-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  top: -110px;
+  z-index: 3;
+}
+
+.players-section {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+.player-seat-wrapper {
+  position: absolute;
+  pointer-events: auto;
+  transform-origin: center center;
+}
+
+.winners-section h3 {
+  color: #f39c12;
+  margin: 0 0 20px 0;
+  font-size: 24px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.winner-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ecf0f1;
+}
+
+.winner-info:last-of-type {
+  border-bottom: none;
+}
+
+.winner-name {
+  font-weight: bold;
+  flex: 1;
+  text-align: left;
+}
+
+.winner-hand {
+  flex: 1;
+  text-align: center;
+  color: #f39c12;
+}
+
+.winner-amount {
+  flex: 1;
+  text-align: right;
+  color: #27ae60;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.reset-message {
+  margin-top: 15px;
+  color: #95a5a6;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.players-section {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 2rem;
+  pointer-events: none;
+}
+
+.player-seat-wrapper {
+  position: relative;
+  pointer-events: auto;
+}
+
+.player-seat-wrapper.is-dealer {
+  transform: scale(1.05);
+}
+
+.dealer-button {
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  width: 35px;
+  height: 35px;
+  background-color: #f39c12;
+  color: #000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+  box-shadow: 0 0 10px rgba(243, 156, 18, 0.8);
+  z-index: 10;
+}
+
+.controls-section {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1.5rem;
+  border-radius: 12px;
+}
+
+.leave-btn {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  align-self: center;
+}
+
+.leave-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(185, 28, 28, 0.3);
+}
+
+.leave-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .game-table {
+    padding: 1rem;
+    gap: 1.5rem;
+  }
+
+  .table-layout {
+    aspect-ratio: auto;
+    min-height: 400px;
+  }
+
+  .table-info {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+.leave-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.poker-table {
+  position: relative;
+  width: 90%;
+  max-width: 1200px;
+  height: 600px;
+  margin: 40px auto;
+  background: 
+    radial-gradient(ellipse at center, #1a4d2e 0%, #0d2818 100%);
+  border: 12px solid #8B4513;
+  border-radius: 50%;
+  box-shadow: 
+    inset 0 0 40px rgba(0, 0, 0, 0.5),
+    0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.community-cards {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.pot-display {
+  margin-bottom: 16px;
+}
+
+.pot-label {
+  font-size: 14px;
+  color: #fff;
+  opacity: 0.7;
+  font-weight: 600;
+}
+
+.pot-amount {
+  font-size: 32px;
+  color: #ffd700;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.cards-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.player-seat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.player-seat.current-user {
+  z-index: 10;
+}
+
+.player-seat.active-turn .player-info {
+  border-color: #4ade80;
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(74, 222, 128, 0.5); }
+  50% { box-shadow: 0 0 30px rgba(74, 222, 128, 0.8); }
+}
+
+.player-seat.folded {
+  opacity: 0.5;
+}
+
+.player-info {
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  min-width: 140px;
+  color: white;
+  text-align: center;
+  position: relative;
+}
+
+.player-name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.player-chips {
+  font-size: 16px;
+  color: #ffd700;
+  font-weight: bold;
+}
+
+.player-bet {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(239, 68, 68, 0.9);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.all-in-badge {
+  background: #dc2626;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-top: 4px;
+}
+
+.player-cards {
+  display: flex;
+  gap: 4px;
+}
+
+.player-controls {
+  position: fixed;
+  bottom: 20px;
+  left: 51%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.9);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.action-button {
+  padding: 14px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.action-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fold-button {
+  background: #6b7280;
+  color: white;
+}
+
+.fold-button:hover {
+  background: #4b5563;
+}
+
+.check-button {
+  background: #3b82f6;
+  color: white;
+}
+
+.check-button:hover {
+  background: #2563eb;
+}
+
+.call-button {
+  background: #10b981;
+  color: white;
+}
+
+.call-button:hover {
+  background: #059669;
+}
+
+.raise-button {
+  background: #f59e0b;
+  color: white;
+}
+
+.raise-button:hover:not(:disabled) {
+  background: #d97706;
+}
+
+.all-in-button {
+  background: #dc2626;
+  color: white;
+}
+
+.all-in-button:hover {
+  background: #b91c1c;
+}
+
+.raise-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.raise-controls input {
+  width: 100px;
+  padding: 12px;
+  font-size: 16px;
+  border: 2px solid #4b5563;
+  border-radius: 8px;
+  background: #1f2937;
+  color: white;
+  text-align: center;
+}
+
+.my-cards-fixed {
+  position: fixed;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 50;
+}
+
+.my-cards-label {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.my-cards-display {
+  display: flex;
+  gap: 8px;
+}
+
+.showdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.showdown-results {
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  text-align: center;
+  max-width: 500px;
+}
+
+.showdown-results h2 {
+  margin: 0 0 24px 0;
+  color: #1e3c72;
+}
+
+.winner-info {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: #f0f9ff;
+  border-radius: 8px;
+}
+
+.winner-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e3c72;
+  margin-bottom: 8px;
+}
+
+.winner-hand {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.winner-amount {
+  font-size: 24px;
+  font-weight: bold;
+  color: #10b981;
+}
+
+.next-hand-button {
+  margin-top: 24px;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.next-hand-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(42, 82, 152, 0.4);
+}
+
+@media (max-width: 768px) {
+  .poker-table {
+    height: 400px;
+  }
+
+  .player-controls {
+    flex-wrap: wrap;
+    max-width: 90%;
+  }
+
+  .action-button {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+}

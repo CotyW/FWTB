@@ -240,6 +240,23 @@
   transform: translateY(0);
 }
 
+.stack-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.stack-presets .btn {
+  width: auto;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
+.stack-presets .btn.active {
+  background: rgba(201, 169, 97, 0.25);
+}
+
 @media (max-width: 600px) {
   .lobby-choice,
   .lobby-form,

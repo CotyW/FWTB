@@ -3,7 +3,7 @@ import { RoomManager } from './RoomManager';
 import { Room } from '../models/Room';
 import { GameEngine } from './gameEngine/GameEngine';
 import { SOCKET_EVENTS } from '../../../shared/constants/socketEvents';
-import { GAME_CONFIG } from '../../../shared/constants/gameConfig';
+import { GAME_CONFIG, clampStartingChips, blindsForStack } from '../../../shared/constants/gameConfig';
 import { BettingAction, RoomConfig } from '../../../shared/types/game.types';
 import { logger } from '../utils/logger';
 
@@ -86,12 +86,12 @@ export class SocketManager {
     socket.on(SOCKET_EVENTS.CREATE_ROOM, (data: any) => {
       try {
         const { playerName, buyIn, levelMinutes } = data;
+        const startingChips = clampStartingChips(buyIn);
         // Convert frontend format to RoomConfig
         const config: RoomConfig = {
           maxPlayers: GAME_CONFIG.MAX_PLAYERS,
-          startingChips: buyIn || 1000,
-          smallBlind: 10,
-          bigBlind: 20,
+          startingChips,
+          ...blindsForStack(startingChips),
           levelMinutes: this.clampLevelMinutes(levelMinutes)
         };
         const room = this.roomManager.createRoom(socket.id, playerName, config);
@@ -278,7 +278,7 @@ export class SocketManager {
             id: p.id,
             socketId: p.socketId,
             name: p.name,
-            chips: p.chips,
+            chips: room.config.startingChips,
             cards: [],
             position: idx,
             isFolded: false,
@@ -371,7 +371,7 @@ export class SocketManager {
   }
 
   private handleUpdateSettings(socket: Socket): void {
-    socket.on(SOCKET_EVENTS.UPDATE_SETTINGS, (data: { levelMinutes?: number }) => {
+    socket.on(SOCKET_EVENTS.UPDATE_SETTINGS, (data: { levelMinutes?: number; startingChips?: number }) => {
       try {
         const room = this.roomManager.findRoomBySocketId(socket.id);
         if (!room) throw new Error('Room not found');
@@ -382,7 +382,14 @@ export class SocketManager {
         if (room.status !== 'waiting') {
           throw new Error('Settings cannot change once the game has started');
         }
-        room.config.levelMinutes = this.clampLevelMinutes(data?.levelMinutes);
+        if (data?.levelMinutes !== undefined) {
+          room.config.levelMinutes = this.clampLevelMinutes(data.levelMinutes);
+        }
+        if (data?.startingChips !== undefined) {
+          const startingChips = clampStartingChips(data.startingChips);
+          Object.assign(room.config, { startingChips }, blindsForStack(startingChips));
+          room.players.forEach(p => { p.chips = startingChips; });
+        }
         this.io.to(room.id).emit(SOCKET_EVENTS.ROOM_UPDATE, { room: room.toJSON() });
       } catch (error) {
         socket.emit(SOCKET_EVENTS.ROOM_ERROR, {

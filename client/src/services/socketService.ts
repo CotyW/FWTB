@@ -81,8 +81,8 @@ class SocketService {
     this.socket.emit('create_room', { playerName, buyIn, levelMinutes });
   }
 
-  updateSettings(levelMinutes: number): void {
-    this.socket?.emit('update_settings', { levelMinutes });
+  updateSettings(settings: { levelMinutes?: number; startingChips?: number }): void {
+    this.socket?.emit('update_settings', settings);
   }
 
   spectateRoom(roomCode: string): void {

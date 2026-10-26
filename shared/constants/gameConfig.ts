@@ -13,7 +13,25 @@ export const GAME_CONFIG = {
   REBUY_LEVELS: 4, // rebuys allowed while the blind level is at or below this
   REBUY_WINDOW_MS: 15000, // time busted players get to rebuy between hands
   TURN_TIME_MS: 30000, // time a player has to act before being auto-checked/folded
+  MIN_STARTING_CHIPS: 100,
+  MAX_STARTING_CHIPS: 1000000,
 } as const;
+
+// Clamp a requested starting stack to the allowed range
+export function clampStartingChips(value: unknown): number {
+  const chips = Math.round(Number(value));
+  if (!Number.isFinite(chips)) return GAME_CONFIG.DEFAULT_STARTING_CHIPS;
+  return Math.min(GAME_CONFIG.MAX_STARTING_CHIPS, Math.max(GAME_CONFIG.MIN_STARTING_CHIPS, chips));
+}
+
+// Starting blinds scale with the stack: big blind is ~1/50 of it (1000 chips -> 10/20), rounded to a 1/2/5 step
+export function blindsForStack(startingChips: number): { smallBlind: number; bigBlind: number } {
+  const target = Math.max(2, startingChips / 50);
+  const magnitude = Math.pow(10, Math.floor(Math.log10(target)));
+  const step = [1, 2, 5, 10].find(s => s * magnitude >= target * 0.9) ?? 10;
+  const bigBlind = Math.max(2, step * magnitude);
+  return { smallBlind: Math.max(1, Math.floor(bigBlind / 2)), bigBlind };
+}
 
 // Multipliers applied to the starting blinds for each level; the last one keeps doubling
 export const BLIND_SCHEDULE = [1, 1.5, 2.5, 5, 7.5, 10, 15, 20, 30, 40, 50, 75, 100] as const;

@@ -1,5 +1,56 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { GAME_CONFIG, clampStartingChips, blindsForStack } from '../../../../shared/constants/gameConfig';
 import './LobbyView.css';
+
+const STACK_PRESETS = [500, 1000, 1500, 2500, 5000, 10000];
+
+// Number input that lets you type freely and only clamps/commits on blur or Enter
+const StackInput: React.FC<{ value: number; onCommit: (chips: number) => void }> = ({ value, onCommit }) => {
+  const [text, setText] = useState(String(value));
+  useEffect(() => setText(String(value)), [value]);
+
+  const commit = () => {
+    const chips = clampStartingChips(text);
+    setText(String(chips));
+    if (chips !== value) onCommit(chips);
+  };
+
+  return (
+    <>
+      <input
+        type="number"
+        value={text}
+        min={GAME_CONFIG.MIN_STARTING_CHIPS}
+        max={GAME_CONFIG.MAX_STARTING_CHIPS}
+        step={100}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+          }
+        }}
+      />
+      <div className="stack-presets">
+        {STACK_PRESETS.map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            className={`btn btn-outline${preset === value ? ' active' : ''}`}
+            onClick={() => {
+              setText(String(preset));
+              if (preset !== value) onCommit(preset);
+            }}
+          >
+            {preset.toLocaleString()}
+          </button>
+        ))}
+      </div>
+      <p className="form-hint">Starting blinds: {blindsForStack(value).smallBlind} / {blindsForStack(value).bigBlind}</p>
+    </>
+  );
+};
 
 interface LandingProps {
   onCreateRoom: (playerName: string, buyIn: number, levelMinutes: number) => void;
@@ -19,7 +70,7 @@ interface RoomLobbyProps {
   currentPlayerId: string;
   startingChips: number;
   levelMinutes: number;
-  onUpdateLevelMinutes: (minutes: number) => void;
+  onUpdateSettings: (settings: { levelMinutes?: number; startingChips?: number }) => void;
   onStartGame: () => void;
   onLeaveRoom: () => void;
 }
@@ -89,13 +140,7 @@ export const Landing: React.FC<LandingProps> = ({ onCreateRoom, onJoinRoom, onSp
 
             <div className="form-group">
               <label>Starting Stack (chips)</label>
-              <input
-                type="number"
-                value={buyIn}
-                onChange={(e) => setBuyIn(Math.max(100, parseInt(e.target.value) || 100))}
-                min={100}
-                step={100}
-              />
+              <StackInput value={buyIn} onCommit={setBuyIn} />
             </div>
 
             <div className="form-group">
@@ -199,8 +244,9 @@ export const Landing: React.FC<LandingProps> = ({ onCreateRoom, onJoinRoom, onSp
   );
 };
 
-export const RoomLobby: React.FC<RoomLobbyProps> = ({ roomCode, players, hostId, currentPlayerId, startingChips, levelMinutes, onUpdateLevelMinutes, onStartGame, onLeaveRoom }) => {
+export const RoomLobby: React.FC<RoomLobbyProps> = ({ roomCode, players, hostId, currentPlayerId, startingChips, levelMinutes, onUpdateSettings, onStartGame, onLeaveRoom }) => {
   const isHost = currentPlayerId === hostId;
+  const blinds = blindsForStack(startingChips);
   return (
     <div className="room-lobby">
       <p className="eyebrow">Sit &amp; Go lobby</p>
@@ -208,10 +254,16 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({ roomCode, players, hostId,
       <p>{players.length} / 6 players · {startingChips.toLocaleString()} starting chips</p>
       <div className="tournament-summary">
         <span>Texas Hold'em</span>
-        <span>Starting blinds: 10 / 20</span>
+        <span>Starting blinds: {blinds.smallBlind} / {blinds.bigBlind}</span>
         <span>Blinds rise every {levelMinutes} min</span>
         <span>Rebuys through level 4</span>
       </div>
+      {isHost && (
+        <div className="form-group">
+          <label>Starting Stack (chips)</label>
+          <StackInput value={startingChips} onCommit={(chips) => onUpdateSettings({ startingChips: chips })} />
+        </div>
+      )}
       {isHost && (
         <div className="form-group">
           <label>Blind Level Length (minutes)</label>
@@ -222,7 +274,7 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({ roomCode, players, hostId,
             max={60}
             onChange={(e) => {
               const m = parseInt(e.target.value);
-              if (m >= 1 && m <= 60) onUpdateLevelMinutes(m);
+              if (m >= 1 && m <= 60) onUpdateSettings({ levelMinutes: m });
             }}
           />
         </div>

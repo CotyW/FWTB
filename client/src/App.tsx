@@ -233,7 +233,7 @@ function App() {
             currentPlayerId={appState.playerId}
             startingChips={appState.startingChips}
             levelMinutes={appState.levelMinutes}
-            onUpdateLevelMinutes={(m) => socketService.updateSettings(m)}
+            onUpdateSettings={(s) => socketService.updateSettings(s)}
             onStartGame={handleStartGame}
             onLeaveRoom={handleLeaveRoom}
           />

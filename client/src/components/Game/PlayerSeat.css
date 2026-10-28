@@ -73,16 +73,26 @@
   display: flex;
   gap: 0.3rem;
   justify-content: center;
-  margin: 0.2rem 0;
-  font-size: 0.8rem;
-  font-weight: 600;
+  margin: 0.25rem 0;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .card-code {
-  background: rgba(201, 169, 97, 0.2);
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
+  background: #fff;
+  min-width: 2.1rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 5px;
   border: 1px solid #c9a961;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.card-code.red {
+  color: #d62828;
+}
+
+.card-code.black {
+  color: #111;
 }
 
 .status-folded,

@@ -31,7 +31,7 @@ const PlayerSeat: React.FC<PlayerSeatProps> = ({ player, isMe = false, isCurrent
         {player.cards && player.cards.length > 0 && (
           <div className="player-cards">
             {player.cards.map((card, i) => (
-              <span key={i} className="card-code">
+              <span key={i} className={`card-code ${/[♥♦]/.test(card) ? 'red' : 'black'}`}>
                 {card}
               </span>
             ))}

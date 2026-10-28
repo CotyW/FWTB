@@ -59,7 +59,8 @@ const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAct
   const turnPlayer = gameState.players[gameState.currentPlayerIndex];
   const myPlayer = gameState.players.find(p => p.id === currentPlayerId);
   const isMyTurn = !!myPlayer && turnPlayer?.id === currentPlayerId;
-  const canRebuy = gameState.stage === 'showdown' && myPlayer?.chips === 0 && gameState.rebuyOpen;
+  const isShowdown = gameState.stage === 'showdown';
+  const canRebuy = isShowdown && myPlayer?.chips === 0 && gameState.rebuyOpen;
   const dealer = gameState.players[gameState.dealerPosition];
 
   // Seats keep their original number for the whole game, so eliminated players leave an empty seat
@@ -100,24 +101,6 @@ const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAct
             <PotDisplay pot={gameState.pot} />
             <CommunityCards cards={gameState.communityCards} />
 
-            {gameState.stage === 'showdown' && gameState.winners && gameState.winners.length > 0 && (
-              <div className="winners-section">
-                {gameState.winners.map((winner) => (
-                  <div key={winner.playerId} className="winner-info">
-                    <span className="winner-name">{winner.playerName}</span>
-                    <span className="winner-hand">{winner.handDescription}</span>
-                    <span className="winner-amount">+${winner.amount}</span>
-                  </div>
-                ))}
-                <p className="reset-message">
-                  {canRebuy ? 'Rebuy now to stay in. ' : ''}Next hand starts shortly.
-                </p>
-                {canRebuy && (
-                  <button className="btn btn-primary" onClick={onRebuy}>Rebuy</button>
-                )}
-              </div>
-            )}
-
             {isSpectator ? (
               <p className="table-notice">👀 Watching as a spectator. Hole cards are hidden.</p>
             ) : !myPlayer ? (
@@ -151,10 +134,30 @@ const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAct
               );
             })}
           </div>
+
+          {isShowdown && gameState.winners && gameState.winners.length > 0 && (
+            <div className="winners-overlay">
+              <div className="winners-section">
+                {gameState.winners.map((winner) => (
+                  <div key={winner.playerId} className="winner-info">
+                    <span className="winner-name">{winner.playerName}</span>
+                    <span className="winner-hand">{winner.handDescription}</span>
+                    <span className="winner-amount">+${winner.amount}</span>
+                  </div>
+                ))}
+                <p className="reset-message">
+                  {canRebuy ? 'Rebuy now to stay in. ' : ''}Next hand starts shortly.
+                </p>
+                {canRebuy && (
+                  <button className="btn btn-primary" onClick={onRebuy}>Rebuy</button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {!isSpectator && myPlayer && (
+      {!isSpectator && myPlayer && !isShowdown && (
         <div className="controls-section">
           <PlayerControls
             currentPlayer={isMyTurn ? myPlayer : undefined}

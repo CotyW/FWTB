@@ -29,6 +29,7 @@ export const SOCKET_EVENTS = {
   UPDATE_SETTINGS: 'update_settings',
   REBUY: 'rebuy',
   SIT_IN: 'sit_in',
+  TOGGLE_PAUSE: 'toggle_pause',
   GAME_STARTED: 'game_started',
   GAME_UPDATE: 'game_update',
   GAME_STATE: 'game_state',

@@ -18,9 +18,29 @@ export class GameEngine {
   // Players who may not raise because a short all-in did not re-open the betting to them
   private raiseLocked: Set<string> = new Set();
   private turnDeadline = 0;
+  private nextHandDeadline = 0;
+  private paused = false;
 
   setTurnDeadline(deadline: number): void {
     this.turnDeadline = deadline;
+  }
+
+  setNextHandAt(deadline: number): void {
+    this.nextHandDeadline = deadline;
+  }
+
+  isPaused(): boolean {
+    return this.paused;
+  }
+
+  pause(): void {
+    this.paused = true;
+    this.levelClock.pause();
+  }
+
+  resume(): void {
+    this.paused = false;
+    this.levelClock.resume();
   }
   private handsPlayed = 0;
   private readonly startingSmallBlind: number;
@@ -64,7 +84,9 @@ export class GameEngine {
       rebuyOpen: true,
       minRaiseTo: 0,
       canRaise: true,
-      turnEndsAt: 0
+      turnEndsAt: 0,
+      nextHandAt: 0,
+      paused: false
     };
   }
 
@@ -159,6 +181,7 @@ export class GameEngine {
   }
 
   handlePlayerAction(playerId: string, action: BettingAction): GameState {
+    if (this.paused) throw new Error('The game is paused');
     const player = this.gameState.players.find(p => p.id === playerId);
     if (!player) throw new Error('Player not found');
 
@@ -492,7 +515,9 @@ export class GameEngine {
       ...this.levelClock.snapshot(),
       minRaiseTo: this.gameState.currentBet + this.lastRaiseSize,
       canRaise: !!current && !this.raiseLocked.has(current.id),
-      turnEndsAt: this.turnDeadline
+      turnEndsAt: this.turnDeadline,
+      nextHandAt: this.nextHandDeadline,
+      paused: this.paused
     };
   }
 

@@ -9,6 +9,12 @@ import { serializeGameState } from './serializeGameState';
 
 export const spectatorChannel = (roomId: string): string => `spectators:${roomId}`;
 
+// What was frozen when the host paused: time left on the turn clock and on the queued next hand
+interface PauseState {
+  turnRemaining: number | null;
+  nextHand: { remaining: number; run: () => void } | null;
+}
+
 /**
  * Drives a running game: per-player state broadcasts, the turn clock,
  * auto sit-out and scheduling of the next hand.
@@ -16,6 +22,8 @@ export const spectatorChannel = (roomId: string): string => `spectators:${roomId
 export class GameFlow {
   private turnTimers: Map<string, NodeJS.Timeout> = new Map();
   private timeoutStreaks: Map<string, number> = new Map(); // playerId -> consecutive turn timeouts
+  private nextHandTimers: Map<string, { timer: NodeJS.Timeout; dueAt: number; run: () => void }> = new Map();
+  private pauses: Map<string, PauseState> = new Map();
 
   constructor(private io: Server, private activeGames: Map<string, GameEngine>) {}
 
@@ -63,12 +71,19 @@ export class GameFlow {
     const stage = state.stage;
     if (this.activeGames.get(room.id) !== gameEngine || stage === 'showdown' || stage === 'waiting') {
       gameEngine.setTurnDeadline(0);
+      const paused = this.pauses.get(room.id);
+      if (paused) paused.turnRemaining = null;
       return;
     }
     // Sitting-out players don't get the full clock; they are auto-checked/folded quickly
     const sittingOut = !!state.players[state.currentPlayerIndex]?.isSittingOut;
     const delay = sittingOut ? GAME_CONFIG.SITTING_OUT_DELAY_MS : GAME_CONFIG.TURN_TIME_MS;
     gameEngine.setTurnDeadline(Date.now() + delay);
+    const pause = this.pauses.get(room.id);
+    if (pause) {
+      pause.turnRemaining = delay;
+      return;
+    }
     const timer = setTimeout(() => this.handleTurnTimeout(room, gameEngine), delay);
     this.turnTimers.set(room.id, timer);
   }
@@ -101,10 +116,72 @@ export class GameFlow {
   }
 
   scheduleNextHand(room: Room, gameEngine: GameEngine): void {
-    // Give busted players time to rebuy while rebuys are still open
+    // Winning hand stays up; busted players get extra time to rebuy while rebuys are still open
     const rebuyWindow = gameEngine.isRebuyOpen() && gameEngine.getBustedPlayers().length > 0;
-    const delay = rebuyWindow ? GAME_CONFIG.REBUY_WINDOW_MS : 5000;
-    setTimeout(() => {
+    const delay = GAME_CONFIG.SHOWDOWN_DISPLAY_MS + (rebuyWindow ? GAME_CONFIG.REBUY_WINDOW_MS : 0);
+    this.queueNextHand(room, gameEngine, delay, () => this.startNextHand(room, gameEngine));
+  }
+
+  private queueNextHand(room: Room, gameEngine: GameEngine, delay: number, run: () => void): void {
+    const existing = this.nextHandTimers.get(room.id);
+    if (existing) clearTimeout(existing.timer);
+    this.nextHandTimers.delete(room.id);
+
+    gameEngine.setNextHandAt(Date.now() + delay);
+    const pause = this.pauses.get(room.id);
+    if (pause) {
+      pause.nextHand = { remaining: delay, run };
+      return;
+    }
+    const timer = setTimeout(() => {
+      this.nextHandTimers.delete(room.id);
+      gameEngine.setNextHandAt(0);
+      run();
+    }, delay);
+    this.nextHandTimers.set(room.id, { timer, dueAt: Date.now() + delay, run });
+  }
+
+  // Freezes (or restores) the turn clock, the queued next hand and the blind-level clock
+  setPaused(room: Room, gameEngine: GameEngine, paused: boolean): void {
+    if (paused === this.pauses.has(room.id)) return;
+    const now = Date.now();
+
+    if (paused) {
+      const entry: PauseState = { turnRemaining: null, nextHand: null };
+      if (this.turnTimers.has(room.id)) {
+        entry.turnRemaining = Math.max(0, gameEngine.getGameState().turnEndsAt - now);
+      }
+      this.clearTurnTimer(room.id);
+      const queued = this.nextHandTimers.get(room.id);
+      if (queued) {
+        clearTimeout(queued.timer);
+        this.nextHandTimers.delete(room.id);
+        entry.nextHand = { remaining: Math.max(0, queued.dueAt - now), run: queued.run };
+      }
+      this.pauses.set(room.id, entry);
+      gameEngine.pause();
+      // Clients show the frozen remaining time relative to the frozen server clock
+      if (entry.turnRemaining !== null) gameEngine.setTurnDeadline(now + entry.turnRemaining);
+      if (entry.nextHand) gameEngine.setNextHandAt(now + entry.nextHand.remaining);
+    } else {
+      const entry = this.pauses.get(room.id)!;
+      this.pauses.delete(room.id);
+      gameEngine.resume();
+      if (entry.turnRemaining !== null) {
+        gameEngine.setTurnDeadline(Date.now() + entry.turnRemaining);
+        this.turnTimers.set(
+          room.id,
+          setTimeout(() => this.handleTurnTimeout(room, gameEngine), entry.turnRemaining)
+        );
+      }
+      if (entry.nextHand) this.queueNextHand(room, gameEngine, entry.nextHand.remaining, entry.nextHand.run);
+    }
+
+    this.broadcastGameState(room, SOCKET_EVENTS.GAME_UPDATE, gameEngine.getGameState());
+  }
+
+  private startNextHand(room: Room, gameEngine: GameEngine): void {
+    {
       const tournamentWinner = gameEngine.getTournamentWinner();
       if (tournamentWinner) {
         room.endGame();
@@ -137,6 +214,6 @@ export class GameFlow {
         });
         this.activeGames.delete(room.id);
       }
-    }, delay);
+    }
   }
 }

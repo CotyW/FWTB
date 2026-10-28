@@ -3,10 +3,26 @@ import { GAME_CONFIG, BLIND_SCHEDULE } from '../../../../shared/constants/gameCo
 /** Tracks the blind level and rebuy window from a (test-overridable) clock. */
 export class LevelClock {
   private startedAt: number | null = null;
+  private pausedAt: number | null = null;
   private readonly levelMs: number;
 
-  constructor(levelMinutes: number | undefined, private now: () => number) {
+  constructor(levelMinutes: number | undefined, private realNow: () => number) {
     this.levelMs = (levelMinutes ?? GAME_CONFIG.DEFAULT_LEVEL_MINUTES) * 60 * 1000;
+  }
+
+  // While paused, time stands still
+  private now(): number {
+    return this.pausedAt ?? this.realNow();
+  }
+
+  pause(): void {
+    if (this.pausedAt === null) this.pausedAt = this.realNow();
+  }
+
+  resume(): void {
+    if (this.pausedAt === null) return;
+    if (this.startedAt !== null) this.startedAt += this.realNow() - this.pausedAt;
+    this.pausedAt = null;
   }
 
   // The clock starts with the first hand and keeps running afterwards

@@ -115,6 +115,10 @@ class SocketService {
     this.socket?.emit(SOCKET_EVENTS.SIT_IN, {});
   }
 
+  togglePause(): void {
+    this.socket?.emit(SOCKET_EVENTS.TOGGLE_PAUSE, {});
+  }
+
   joinRoom(roomCode: string, playerName: string): void {
     if (!this.socket) {
       console.error('Socket not connected');

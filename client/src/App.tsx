@@ -268,6 +268,8 @@ function App() {
             onAction={handleGameAction}
             onRebuy={() => socketService.rebuy()}
             onSitIn={() => socketService.sitIn()}
+            isHost={appState.hostId === appState.playerId}
+            onTogglePause={() => socketService.togglePause()}
             isSpectator={appState.isSpectator}
             onLeaveGame={handleLeaveRoom}
           />

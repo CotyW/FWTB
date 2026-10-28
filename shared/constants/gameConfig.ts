@@ -11,7 +11,8 @@ export const GAME_CONFIG = {
   MIN_LEVEL_MINUTES: 1,
   MAX_LEVEL_MINUTES: 60,
   REBUY_LEVELS: 4, // rebuys allowed while the blind level is at or below this
-  REBUY_WINDOW_MS: 15000, // time busted players get to rebuy between hands
+  REBUY_WINDOW_MS: 60000, // extra time busted players get to rebuy after the winning hand is shown
+  SHOWDOWN_DISPLAY_MS: 10000, // how long the winning hand stays on screen before the next hand
   TURN_TIME_MS: 30000, // time a player has to act before being auto-checked/folded
   MIN_STARTING_CHIPS: 100,
   MAX_STARTING_CHIPS: 1000000,

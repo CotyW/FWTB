@@ -68,6 +68,28 @@
   50% { opacity: 0.6; }
 }
 
+.pause-btn {
+  background: rgba(201, 169, 97, 0.2);
+  color: #f5e6b8;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid #c9a961;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pause-btn.active {
+  background: #c9a961;
+  color: #1a1a1a;
+}
+
+.paused-notice {
+  color: #f5e6b8;
+  border: 1px solid #c9a961;
+}
+
 .leave-btn {
   background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
   color: white;

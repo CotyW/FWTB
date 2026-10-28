@@ -38,6 +38,8 @@ export interface GameState {
   minRaiseTo: number;
   canRaise: boolean;
   turnEndsAt: number;
+  nextHandAt: number; // 0 when no hand is queued
+  paused: boolean;
   winners?: WinnerInfo[];
 }
 

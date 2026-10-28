@@ -12,6 +12,8 @@ interface GameTableProps {
   onAction: (action: string, amount?: number) => void;
   onRebuy: () => void;
   onSitIn: () => void;
+  isHost?: boolean;
+  onTogglePause?: () => void;
   isSpectator?: boolean;
   onLeaveGame: () => void;
 }
@@ -33,32 +35,32 @@ const seatStyle = (seat: number, viewerSeat: number): React.CSSProperties => {
   };
 };
 
-const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAction, onRebuy, onSitIn, isSpectator = false, onLeaveGame }) => {
-  // Use server-relative time so client clock skew doesn't matter
-  const [remainingMs, setRemainingMs] = useState(gameState.levelEndsAt - gameState.serverTime);
-  useEffect(() => {
-    const receivedAt = Date.now();
-    const initial = gameState.levelEndsAt - gameState.serverTime;
-    setRemainingMs(initial);
-    const timer = setInterval(() => setRemainingMs(initial - (Date.now() - receivedAt)), 500);
-    return () => clearInterval(timer);
-  }, [gameState.levelEndsAt, gameState.serverTime]);
+const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAction, onRebuy, onSitIn, isHost = false, onTogglePause, isSpectator = false, onLeaveGame }) => {
+  const paused = !!gameState.paused;
 
-  const [turnRemainingMs, setTurnRemainingMs] = useState(0);
-  useEffect(() => {
-    if (!gameState.turnEndsAt) {
-      setTurnRemainingMs(0);
-      return;
-    }
-    const receivedAt = Date.now();
-    const initial = gameState.turnEndsAt - gameState.serverTime;
-    setTurnRemainingMs(initial);
-    const timer = setInterval(() => setTurnRemainingMs(initial - (Date.now() - receivedAt)), 250);
-    return () => clearInterval(timer);
-  }, [gameState.turnEndsAt, gameState.serverTime]);
+  // Use server-relative time so client clock skew doesn't matter; while paused the countdowns stand still
+  const useCountdown = (endsAt: number, tickMs: number) => {
+    const [remaining, setRemaining] = useState(0);
+    useEffect(() => {
+      if (!endsAt) {
+        setRemaining(0);
+        return;
+      }
+      const receivedAt = Date.now();
+      const initial = endsAt - gameState.serverTime;
+      setRemaining(initial);
+      if (paused) return;
+      const timer = setInterval(() => setRemaining(initial - (Date.now() - receivedAt)), tickMs);
+      return () => clearInterval(timer);
+    }, [endsAt, gameState.serverTime, paused]);
+    return remaining;
+  };
+  const remainingMs = useCountdown(gameState.levelEndsAt, 500);
+  const turnRemainingMs = useCountdown(gameState.turnEndsAt, 250);
+  const nextHandMs = useCountdown(gameState.nextHandAt, 250);
   const turnPlayer = gameState.players[gameState.currentPlayerIndex];
   const myPlayer = gameState.players.find(p => p.id === currentPlayerId);
-  const isMyTurn = !!myPlayer && turnPlayer?.id === currentPlayerId;
+  const isMyTurn = !!myPlayer && turnPlayer?.id === currentPlayerId && !paused;
   const isShowdown = gameState.stage === 'showdown';
   const canRebuy = isShowdown && myPlayer?.chips === 0 && gameState.rebuyOpen;
   const dealer = gameState.players[gameState.dealerPosition];
@@ -85,9 +87,14 @@ const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAct
         </div>
         <div className="hud-group">
           {gameState.turnEndsAt > 0 && turnPlayer && (
-            <span className={`turn-timer ${turnRemainingMs <= 10000 ? 'urgent' : ''}`}>
+            <span className={`turn-timer ${turnRemainingMs <= 10000 && !paused ? 'urgent' : ''}`}>
               ⏱ {turnPlayer.id === currentPlayerId ? 'Your turn' : turnPlayer.name} {formatTime(turnRemainingMs)}
             </span>
+          )}
+          {isHost && onTogglePause && (
+            <button className={`pause-btn ${paused ? 'active' : ''}`} onClick={onTogglePause}>
+              {paused ? '▶ Resume' : '⏸ Pause'}
+            </button>
           )}
           <button className="leave-btn" onClick={onLeaveGame}>Leave</button>
         </div>
@@ -101,6 +108,7 @@ const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAct
             <PotDisplay pot={gameState.pot} />
             <CommunityCards cards={gameState.communityCards} />
 
+            {paused && <p className="table-notice paused-notice">⏸ Game paused by the host</p>}
             {isSpectator ? (
               <p className="table-notice">👀 Watching as a spectator. Hole cards are hidden.</p>
             ) : !myPlayer ? (
@@ -146,7 +154,8 @@ const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAct
                   </div>
                 ))}
                 <p className="reset-message">
-                  {canRebuy ? 'Rebuy now to stay in. ' : ''}Next hand starts shortly.
+                  {canRebuy ? 'Rebuy now to stay in. ' : ''}
+                  {paused ? 'Game paused.' : `Next hand in ${formatTime(nextHandMs)}.`}
                 </p>
                 {canRebuy && (
                   <button className="btn btn-primary" onClick={onRebuy}>Rebuy</button>

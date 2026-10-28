@@ -30,6 +30,8 @@ export interface GameState {
   stage: GameStage;
   smallBlind: number;
   bigBlind: number;
+  nextSmallBlind: number; // blinds the next hand will use, including any host adjustment
+  nextBigBlind: number;
   handNumber: number;
   blindLevel: number;
   levelEndsAt: number;
@@ -82,6 +84,7 @@ export interface RoomConfig {
   smallBlind: number;
   bigBlind: number;
   levelMinutes: number;
+  blindsCustom?: boolean; // host set the blinds by hand, so stack changes don't reset them
 }
 
 export interface GameConfig {

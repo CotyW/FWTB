@@ -132,6 +132,20 @@ export function registerGameHandlers(ctx: SocketContext, socket: Socket): void {
     }
   });
 
+  socket.on(SOCKET_EVENTS.ADJUST_BLINDS, (data: { direction?: number }) => {
+    try {
+      const room = roomManager.findRoomBySocketId(socket.id);
+      const player = room?.getPlayerBySocketId(socket.id);
+      const gameEngine = room && activeGames.get(room.id);
+      if (!room || !player || !gameEngine) throw new Error('Game not active');
+      if (player.id !== room.hostId) throw new Error('Only the host can change the blinds');
+      gameEngine.adjustBlinds(data?.direction === -1 ? -1 : 1);
+      flow.broadcastGameState(room, SOCKET_EVENTS.GAME_UPDATE, gameEngine.getGameState());
+    } catch (error) {
+      socket.emit(SOCKET_EVENTS.GAME_ERROR, { message: errorMessage(error, 'Blind change failed') });
+    }
+  });
+
   socket.on(SOCKET_EVENTS.SIT_IN, () => {
     const room = roomManager.findRoomBySocketId(socket.id);
     const player = room?.getPlayerBySocketId(socket.id);

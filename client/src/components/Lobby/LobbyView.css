@@ -257,6 +257,19 @@
   background: rgba(201, 169, 97, 0.25);
 }
 
+.blinds-inputs {
+  display: flex;
+  gap: 12px;
+}
+
+.blinds-inputs label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
 @media (max-width: 600px) {
   .lobby-choice,
   .lobby-form,

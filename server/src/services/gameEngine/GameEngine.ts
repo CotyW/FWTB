@@ -33,6 +33,19 @@ export class GameEngine {
     return this.paused;
   }
 
+  // Host steps up/down the blind schedule; takes effect when the next hand is dealt
+  private blindAdjust = 0;
+
+  private effectiveBlindLevel(): number {
+    return Math.min(GAME_CONFIG.MAX_BLIND_LEVEL, Math.max(1, this.getCurrentLevel() + this.blindAdjust));
+  }
+
+  adjustBlinds(direction: 1 | -1): void {
+    const next = this.effectiveBlindLevel() + direction;
+    if (next < 1 || next > GAME_CONFIG.MAX_BLIND_LEVEL) return;
+    this.blindAdjust += direction;
+  }
+
   pause(): void {
     this.paused = true;
     this.levelClock.pause();
@@ -77,6 +90,8 @@ export class GameEngine {
       stage: 'waiting', // waiting, preflop, flop, turn, river, showdown
       smallBlind: config.smallBlind,
       bigBlind: config.bigBlind,
+      nextSmallBlind: config.smallBlind,
+      nextBigBlind: config.bigBlind,
       handNumber: 0,
       blindLevel: 1,
       levelEndsAt: 0,
@@ -96,8 +111,8 @@ export class GameEngine {
     const blindLevel = this.getCurrentLevel();
     this.gameState.blindLevel = blindLevel;
     this.gameState.handNumber = this.handsPlayed;
-    this.gameState.smallBlind = LevelClock.blindsForLevel(this.startingSmallBlind, blindLevel);
-    this.gameState.bigBlind = LevelClock.blindsForLevel(this.startingBigBlind, blindLevel);
+    this.gameState.smallBlind = LevelClock.blindsForLevel(this.startingSmallBlind, this.effectiveBlindLevel());
+    this.gameState.bigBlind = LevelClock.blindsForLevel(this.startingBigBlind, this.effectiveBlindLevel());
 
     // Reset for new hand
     this.deck.shuffle();
@@ -517,6 +532,8 @@ export class GameEngine {
       canRaise: !!current && !this.raiseLocked.has(current.id),
       turnEndsAt: this.turnDeadline,
       nextHandAt: this.nextHandDeadline,
+      nextSmallBlind: LevelClock.blindsForLevel(this.startingSmallBlind, this.effectiveBlindLevel()),
+      nextBigBlind: LevelClock.blindsForLevel(this.startingBigBlind, this.effectiveBlindLevel()),
       paused: this.paused
     };
   }

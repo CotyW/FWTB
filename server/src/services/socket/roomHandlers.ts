@@ -1,7 +1,7 @@
 import { Socket } from 'socket.io';
 import { Room } from '../../models/Room';
 import { SOCKET_EVENTS } from '../../../../shared/constants/socketEvents';
-import { GAME_CONFIG, clampStartingChips, blindsForStack } from '../../../../shared/constants/gameConfig';
+import { GAME_CONFIG, clampStartingChips, clampBlinds, blindsForStack } from '../../../../shared/constants/gameConfig';
 import { RoomConfig } from '../../../../shared/types/game.types';
 import { logger } from '../../utils/logger';
 import { SocketContext } from './context';
@@ -76,12 +76,14 @@ export function registerRoomHandlers(ctx: SocketContext, socket: Socket): void {
 
   socket.on(SOCKET_EVENTS.CREATE_ROOM, (data: any) => {
     try {
-      const { playerName, buyIn, levelMinutes } = data;
+      const { playerName, buyIn, levelMinutes, smallBlind, bigBlind } = data;
       const startingChips = clampStartingChips(buyIn);
+      const custom = smallBlind !== undefined || bigBlind !== undefined;
       const config: RoomConfig = {
         maxPlayers: GAME_CONFIG.MAX_PLAYERS,
         startingChips,
-        ...blindsForStack(startingChips),
+        ...(custom ? clampBlinds(smallBlind, bigBlind, startingChips) : blindsForStack(startingChips)),
+        blindsCustom: custom,
         levelMinutes: clampLevelMinutes(levelMinutes)
       };
       const room = roomManager.createRoom(socket.id, playerName, config);
@@ -185,7 +187,7 @@ export function registerRoomHandlers(ctx: SocketContext, socket: Socket): void {
     }
   });
 
-  socket.on(SOCKET_EVENTS.UPDATE_SETTINGS, (data: { levelMinutes?: number; startingChips?: number }) => {
+  socket.on(SOCKET_EVENTS.UPDATE_SETTINGS, (data: { levelMinutes?: number; startingChips?: number; smallBlind?: number; bigBlind?: number }) => {
     try {
       const room = roomManager.findRoomBySocketId(socket.id);
       if (!room) throw new Error('Room not found');
@@ -201,8 +203,22 @@ export function registerRoomHandlers(ctx: SocketContext, socket: Socket): void {
       }
       if (data?.startingChips !== undefined) {
         const startingChips = clampStartingChips(data.startingChips);
-        Object.assign(room.config, { startingChips }, blindsForStack(startingChips));
+        room.config.startingChips = startingChips;
         room.players.forEach(p => { p.chips = startingChips; });
+        // Auto blinds follow the stack; hand-picked blinds are kept (but never exceed the new stack)
+        Object.assign(
+          room.config,
+          room.config.blindsCustom
+            ? clampBlinds(room.config.smallBlind, room.config.bigBlind, startingChips)
+            : blindsForStack(startingChips)
+        );
+      }
+      if (data?.smallBlind !== undefined || data?.bigBlind !== undefined) {
+        Object.assign(room.config, clampBlinds(
+          data.smallBlind ?? room.config.smallBlind,
+          data.bigBlind ?? room.config.bigBlind,
+          room.config.startingChips
+        ), { blindsCustom: true });
       }
       io.to(room.id).emit(SOCKET_EVENTS.ROOM_UPDATE, { room: room.toJSON() });
     } catch (error) {

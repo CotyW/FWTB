@@ -12,6 +12,8 @@ export interface PlayerJoinedEvent {
   playerId: string;
   config: {
     startingChips: number;
+    smallBlind?: number;
+    bigBlind?: number;
     levelMinutes?: number;
   };
 }
@@ -86,15 +88,20 @@ class SocketService {
     }
   }
 
-  createRoom(playerName: string, buyIn: number, levelMinutes: number): void {
+  createRoom(
+    playerName: string,
+    buyIn: number,
+    levelMinutes: number,
+    blinds?: { smallBlind: number; bigBlind: number }
+  ): void {
     if (!this.socket) {
       console.error('Socket not connected');
       return;
     }
-    this.socket.emit(SOCKET_EVENTS.CREATE_ROOM, { playerName, buyIn, levelMinutes });
+    this.socket.emit(SOCKET_EVENTS.CREATE_ROOM, { playerName, buyIn, levelMinutes, ...blinds });
   }
 
-  updateSettings(settings: { levelMinutes?: number; startingChips?: number }): void {
+  updateSettings(settings: { levelMinutes?: number; startingChips?: number; smallBlind?: number; bigBlind?: number }): void {
     this.socket?.emit(SOCKET_EVENTS.UPDATE_SETTINGS, settings);
   }
 
@@ -117,6 +124,10 @@ class SocketService {
 
   togglePause(): void {
     this.socket?.emit(SOCKET_EVENTS.TOGGLE_PAUSE, {});
+  }
+
+  adjustBlinds(direction: 1 | -1): void {
+    this.socket?.emit(SOCKET_EVENTS.ADJUST_BLINDS, { direction });
   }
 
   joinRoom(roomCode: string, playerName: string): void {

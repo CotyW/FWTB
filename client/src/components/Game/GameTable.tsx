@@ -14,6 +14,7 @@ interface GameTableProps {
   onSitIn: () => void;
   isHost?: boolean;
   onTogglePause?: () => void;
+  onAdjustBlinds?: (direction: 1 | -1) => void;
   isSpectator?: boolean;
   onLeaveGame: () => void;
 }
@@ -35,7 +36,7 @@ const seatStyle = (seat: number, viewerSeat: number): React.CSSProperties => {
   };
 };
 
-const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAction, onRebuy, onSitIn, isHost = false, onTogglePause, isSpectator = false, onLeaveGame }) => {
+const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAction, onRebuy, onSitIn, isHost = false, onTogglePause, onAdjustBlinds, isSpectator = false, onLeaveGame }) => {
   const paused = !!gameState.paused;
 
   // Use server-relative time so client clock skew doesn't matter; while paused the countdowns stand still
@@ -78,6 +79,17 @@ const GameTable: React.FC<GameTableProps> = ({ gameState, currentPlayerId, onAct
           <span className="hud-item hud-strong">
             Level {gameState.blindLevel} · Blinds {gameState.smallBlind}/{gameState.bigBlind}
           </span>
+          {(gameState.nextSmallBlind !== gameState.smallBlind || gameState.nextBigBlind !== gameState.bigBlind) && (
+            <span className="hud-item blinds-pending">
+              Next hand {gameState.nextSmallBlind}/{gameState.nextBigBlind}
+            </span>
+          )}
+          {isHost && onAdjustBlinds && (
+            <span className="blind-adjust">
+              <button title="Lower blinds next hand" onClick={() => onAdjustBlinds(-1)}>−</button>
+              <button title="Raise blinds next hand" onClick={() => onAdjustBlinds(1)}>+</button>
+            </span>
+          )}
         </div>
         <div className="hud-group">
           <span className="hud-item">

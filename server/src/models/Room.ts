@@ -1,12 +1,7 @@
 import { Player } from './Player';
+import { RoomConfig } from '../../../shared/types/game.types';
 
-export interface RoomConfig {
-  maxPlayers: number;
-  startingChips: number;
-  smallBlind: number;
-  bigBlind: number;
-  levelMinutes: number;
-}
+export type { RoomConfig };
 
 export class Room {
   id: string;

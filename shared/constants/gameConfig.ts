@@ -16,6 +16,7 @@ export const GAME_CONFIG = {
   TURN_TIME_MS: 30000, // time a player has to act before being auto-checked/folded
   MIN_STARTING_CHIPS: 100,
   MAX_STARTING_CHIPS: 1000000,
+  MAX_BLIND_LEVEL: 30, // upper bound when the host steps blinds up manually
   AUTO_SIT_OUT_TIMEOUTS: 2, // consecutive turn timeouts before a player is sat out
   SITTING_OUT_DELAY_MS: 1500, // how long a sitting-out player's turn lasts before auto-acting
 } as const;
@@ -34,6 +35,17 @@ export function blindsForStack(startingChips: number): { smallBlind: number; big
   const step = [1, 2, 5, 10].find(s => s * magnitude >= target * 0.9) ?? 10;
   const bigBlind = Math.max(2, step * magnitude);
   return { smallBlind: Math.max(1, Math.floor(bigBlind / 2)), bigBlind };
+}
+
+// Sanitise host-chosen blinds: a blind can't exceed the starting stack and the small blind can't exceed the big
+export function clampBlinds(smallBlind: unknown, bigBlind: unknown, startingChips: number): { smallBlind: number; bigBlind: number } {
+  const fallback = blindsForStack(startingChips);
+  const rawBig = Math.round(Number(bigBlind));
+  const rawSmall = Math.round(Number(smallBlind));
+  const big = Number.isFinite(rawBig) ? rawBig : fallback.bigBlind;
+  const small = Number.isFinite(rawSmall) ? rawSmall : fallback.smallBlind;
+  const bb = Math.min(startingChips, Math.max(2, big));
+  return { smallBlind: Math.min(bb, Math.max(1, small)), bigBlind: bb };
 }
 
 // Multipliers applied to the starting blinds for each level; the last one keeps doubling

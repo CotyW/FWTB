@@ -16,6 +16,8 @@ export interface AppState {
   playerId: string;
   gameState: GameState | null;
   startingChips: number;
+  smallBlind: number;
+  bigBlind: number;
   levelMinutes: number;
   isSpectator: boolean;
   tournamentWinner: GameEndedEvent['winner'] | null;
@@ -33,6 +35,8 @@ function App() {
     playerId: '',
     gameState: null,
     startingChips: 1000,
+    smallBlind: 10,
+    bigBlind: 20,
     levelMinutes: 10,
     isSpectator: false,
     tournamentWinner: null,
@@ -63,6 +67,8 @@ function App() {
         playerId: data.playerId,
         players: data.players || [],
         startingChips: data.config?.startingChips || prev.startingChips,
+        smallBlind: data.config?.smallBlind || prev.smallBlind,
+        bigBlind: data.config?.bigBlind || prev.bigBlind,
         levelMinutes: data.config?.levelMinutes || prev.levelMinutes,
         tournamentWinner: null,
       }));
@@ -78,6 +84,8 @@ function App() {
         playerId: data.playerId,
         players: data.players || [],
         startingChips: data.config?.startingChips || prev.startingChips,
+        smallBlind: data.config?.smallBlind || prev.smallBlind,
+        bigBlind: data.config?.bigBlind || prev.bigBlind,
         levelMinutes: data.config?.levelMinutes || prev.levelMinutes,
         tournamentWinner: null,
       }));
@@ -100,6 +108,8 @@ function App() {
         hostId: data.room?.hostId || prev.hostId,
         players: data.room?.players || prev.players,
         startingChips: data.room?.config?.startingChips || prev.startingChips,
+        smallBlind: data.room?.config?.smallBlind || prev.smallBlind,
+        bigBlind: data.room?.config?.bigBlind || prev.bigBlind,
         levelMinutes: data.room?.config?.levelMinutes || prev.levelMinutes,
       }));
     });
@@ -170,9 +180,14 @@ function App() {
     };
   }, []);
 
-  const handleCreateRoom = (playerName: string, buyIn: number, levelMinutes: number) => {
+  const handleCreateRoom = (
+    playerName: string,
+    buyIn: number,
+    levelMinutes: number,
+    blinds?: { smallBlind: number; bigBlind: number }
+  ) => {
     setAppState((prev) => ({ ...prev, playerName }));
-    socketService.createRoom(playerName, buyIn, levelMinutes);
+    socketService.createRoom(playerName, buyIn, levelMinutes, blinds);
   };
 
   const handleJoinRoom = (playerName: string, roomCode: string) => {
@@ -204,12 +219,12 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🎰 Texas Hold'em Poker</h1>
+        <h1>ðŸŽ° Texas Hold'em Poker</h1>
         <div className="connection-status">
           {connected ? (
-            <span className="status-online">● Online</span>
+            <span className="status-online">â— Online</span>
           ) : (
-            <span className="status-offline">● Offline</span>
+            <span className="status-offline">â— Offline</span>
           )}
         </div>
       </header>
@@ -239,6 +254,8 @@ function App() {
             hostId={appState.hostId}
             currentPlayerId={appState.playerId}
             startingChips={appState.startingChips}
+            smallBlind={appState.smallBlind}
+            bigBlind={appState.bigBlind}
             levelMinutes={appState.levelMinutes}
             onUpdateSettings={(s) => socketService.updateSettings(s)}
             onStartGame={handleStartGame}
@@ -270,6 +287,7 @@ function App() {
             onSitIn={() => socketService.sitIn()}
             isHost={appState.hostId === appState.playerId}
             onTogglePause={() => socketService.togglePause()}
+            onAdjustBlinds={(d) => socketService.adjustBlinds(d)}
             isSpectator={appState.isSpectator}
             onLeaveGame={handleLeaveRoom}
           />

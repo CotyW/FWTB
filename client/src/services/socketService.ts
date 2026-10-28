@@ -32,6 +32,16 @@ export interface GameEndedEvent {
 class SocketService {
   private socket: Socket | null = null;
   private isConnected = false;
+  private connectionListeners = new Set<(connected: boolean) => void>();
+
+  onConnectionChange(listener: (connected: boolean) => void): () => void {
+    this.connectionListeners.add(listener);
+    return () => this.connectionListeners.delete(listener);
+  }
+
+  private notifyConnection(): void {
+    this.connectionListeners.forEach((l) => l(this.isConnected));
+  }
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -48,6 +58,7 @@ class SocketService {
 
         this.socket.on(SOCKET_EVENTS.CONNECT, () => {
           this.isConnected = true;
+          this.notifyConnection();
           console.log('Connected to server');
           resolve();
         });
@@ -59,6 +70,7 @@ class SocketService {
 
         this.socket.on(SOCKET_EVENTS.DISCONNECT, () => {
           this.isConnected = false;
+          this.notifyConnection();
           console.log('Disconnected from server');
         });
       } catch (error) {

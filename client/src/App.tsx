@@ -39,7 +39,13 @@ function App() {
     error: null,
   });
 
+  const [connected, setConnected] = useState(socketService.getIsConnected());
+
   useEffect(() => {
+    const off = socketService.onConnectionChange((isUp) => {
+      setConnected(isUp);
+      if (isUp) setAppState((prev) => (prev.error === 'Failed to connect to server' ? { ...prev, error: null } : prev));
+    });
     // Connect to server on mount
     socketService.connect().catch((error) => {
       console.error('Failed to connect:', error);
@@ -159,6 +165,7 @@ function App() {
     });
 
     return () => {
+      off();
       socketService.disconnect();
     };
   }, []);
@@ -199,7 +206,7 @@ function App() {
       <header className="app-header">
         <h1>🎰 Texas Hold'em Poker</h1>
         <div className="connection-status">
-          {socketService.getIsConnected() ? (
+          {connected ? (
             <span className="status-online">● Online</span>
           ) : (
             <span className="status-offline">● Offline</span>
